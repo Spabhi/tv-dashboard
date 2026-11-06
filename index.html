@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>webOS Smart TV Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="webOSTV.js"></script>
+</head>
+<body>
+  <div class="tv-canvas">
+    <!-- Top Header Bar -->
+    <header class="tv-header">
+      <div class="brand">
+        <img src="icon.png" alt="TV Dashboard Icon" class="brand-icon" />
+        <div>
+          <h1 id="appTitle">Smart TV Command Center</h1>
+          <span class="subtitle" id="deviceBadge">Initializing webOS...</span>
+        </div>
+      </div>
+      <div class="header-clock">
+        <div id="clockTime" class="time">12:00:00</div>
+        <div id="clockDate" class="date">Loading date...</div>
+      </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-grid">
+      <!-- Weather & Environment Card -->
+      <section class="card focusable" tabindex="0" data-action="refresh-weather">
+        <div class="card-head">
+          <span class="card-tag">ENVIRONMENT</span>
+          <span class="card-icon">🌤</span>
+        </div>
+        <div class="metric-big" id="weatherTemp">21°C</div>
+        <div class="metric-label" id="weatherDesc">Partly Cloudy · Indoor 22.4°C · Humidity 46%</div>
+        <div class="card-footer">Press <b>OK / Enter</b> to cycle station</div>
+      </section>
+
+      <!-- System & Network Telemetry Card -->
+      <section class="card focusable" tabindex="0" data-action="ping-luna">
+        <div class="card-head">
+          <span class="card-tag">SYSTEM &amp; LUNA BUS</span>
+          <span class="card-icon">📡</span>
+        </div>
+        <div class="metric-big" id="netStatus">ONLINE</div>
+        <div class="metric-label" id="sysDetails">Resolution: 1920×1080 · Latency: 12 ms</div>
+        <div class="card-footer">Press <b>OK / Enter</b> to test Luna Service</div>
+      </section>
+
+      <!-- Energy & Smart Home Card -->
+      <section class="card focusable" tabindex="0" data-action="toggle-eco">
+        <div class="card-head">
+          <span class="card-tag">SMART ENERGY</span>
+          <span class="card-icon">⚡</span>
+        </div>
+        <div class="metric-big" id="powerUsage">1.42 kW</div>
+        <div class="metric-label" id="ecoState">Solar Output: 3.1 kW · Mode: Balanced</div>
+        <div class="card-footer">Press <b>OK / Enter</b> to toggle Eco Mode</div>
+      </section>
+
+      <!-- Quick Launch Apps Row -->
+      <section class="card wide">
+        <div class="card-head">
+          <span class="card-tag">QUICK LAUNCH &amp; SCENES (USE D-PAD ARROWS)</span>
+          <span class="card-icon">🎬</span>
+        </div>
+        <div class="tile-row">
+          <button class="app-tile focusable" tabindex="0" data-action="scene-cinema">
+            <span class="tile-emoji">🍿</span>
+            <span class="tile-title">Cinema Mode</span>
+            <span class="tile-sub">Dim lights · HDMI 1</span>
+          </button>
+          <button class="app-tile focusable" tabindex="0" data-action="scene-ambient">
+            <span class="tile-emoji">🖼</span>
+            <span class="tile-title">Ambient Gallery</span>
+            <span class="tile-sub">4K Art &amp; Clock</span>
+          </button>
+          <button class="app-tile focusable" tabindex="0" data-action="scene-cameras">
+            <span class="tile-emoji">📹</span>
+            <span class="tile-title">Security Feeds</span>
+            <span class="tile-sub">4 Cameras Active</span>
+          </button>
+          <button class="app-tile focusable" tabindex="0" data-action="scene-music">
+            <span class="tile-emoji">🎵</span>
+            <span class="tile-title">Audio Lounge</span>
+            <span class="tile-sub">Optical Out · Lossless</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Activity & Notification Log -->
+      <section class="card focusable" tabindex="0" data-action="clear-log">
+        <div class="card-head">
+          <span class="card-tag">LIVE EVENT LOG</span>
+          <span class="card-icon">🔔</span>
+        </div>
+        <ul id="eventLog" class="event-list"></ul>
+        <div class="card-footer">Press <b>OK / Enter</b> to clear log</div>
+      </section>
+    </main>
+
+    <!-- Bottom Remote Help Bar -->
+    <footer class="tv-footer">
+      <span><kbd>▲</kbd> <kbd>▼</kbd> <kbd>◄</kbd> <kbd>►</kbd> Navigate Tiles</span>
+      <span><kbd>OK / Enter</kbd> Activate Selection</span>
+      <span><kbd>Back / Esc</kbd> Return to Home</span>
+      <span id="statusToast" class="toast">Ready</span>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

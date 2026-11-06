@@ -1,0 +1,231 @@
+:root {
+  --bg-dark: #070b14;
+  --panel: rgba(20, 29, 47, 0.85);
+  --panel-hover: rgba(30, 44, 70, 0.95);
+  --border: rgba(148, 163, 184, 0.18);
+  --accent: #38bdf8;
+  --accent-glow: rgba(56, 189, 248, 0.45);
+  --green: #4ade80;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+}
+
+* {
+  box-sizing: border-box;
+  user-select: none;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: radial-gradient(circle at 15% 15%, #132347 0%, var(--bg-dark) 70%);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+.tv-canvas {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  padding: clamp(20px, 3vw, 48px) clamp(24px, 4vw, 64px);
+}
+
+.tv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: clamp(12px, 1.5vh, 24px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.brand-icon {
+  width: clamp(48px, 4vw, 68px);
+  height: clamp(48px, 4vw, 68px);
+  border-radius: 14px;
+  border: 2px solid var(--accent);
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: clamp(22px, 2.2vw, 38px);
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: var(--accent);
+  font-size: clamp(13px, 1.1vw, 18px);
+}
+
+.header-clock {
+  text-align: right;
+}
+
+.time {
+  font-size: clamp(26px, 2.6vw, 44px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.date {
+  color: var(--muted);
+  font-size: clamp(13px, 1.1vw, 18px);
+}
+
+.dashboard-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 1fr 1.15fr;
+  gap: clamp(16px, 1.8vw, 28px);
+  margin: clamp(16px, 2vh, 28px) 0;
+  min-height: 0;
+}
+
+.card {
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  padding: clamp(18px, 2vw, 30px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  outline: none;
+  min-height: 0;
+}
+
+.card.wide {
+  grid-column: span 2;
+}
+
+.focusable:focus,
+.focusable:hover {
+  border-color: var(--accent);
+  background: var(--panel-hover);
+  transform: scale(1.02);
+  box-shadow: 0 0 0 4px var(--accent-glow), 0 16px 36px rgba(0, 0, 0, 0.5);
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-tag {
+  font-size: clamp(11px, 0.9vw, 15px);
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: var(--accent);
+}
+
+.card-icon {
+  font-size: clamp(22px, 2vw, 34px);
+}
+
+.metric-big {
+  font-size: clamp(32px, 3.6vw, 62px);
+  font-weight: 800;
+  margin: 6px 0;
+}
+
+.metric-label {
+  color: var(--muted);
+  font-size: clamp(13px, 1.1vw, 19px);
+}
+
+.card-footer {
+  font-size: clamp(11px, 0.9vw, 15px);
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.tile-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(12px, 1.3vw, 20px);
+  flex: 1;
+  margin-top: 14px;
+}
+
+.app-tile {
+  background: rgba(15, 23, 42, 0.8);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  color: var(--text);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.tile-emoji {
+  font-size: clamp(28px, 2.8vw, 44px);
+}
+
+.tile-title {
+  font-size: clamp(14px, 1.2vw, 20px);
+  font-weight: 700;
+}
+
+.tile-sub {
+  font-size: clamp(11px, 0.9vw, 14px);
+  color: var(--muted);
+}
+
+.event-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+  flex: 1;
+  overflow-y: auto;
+  font-size: clamp(12px, 1vw, 16px);
+}
+
+.event-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  color: #cbd5e1;
+}
+
+.tv-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: clamp(12px, 1vw, 16px);
+}
+
+kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-family: inherit;
+  color: var(--text);
+}
+
+.toast {
+  color: var(--green);
+  font-weight: 600;
+}
