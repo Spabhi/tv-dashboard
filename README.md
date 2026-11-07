@@ -51,3 +51,4 @@ To package and install the `.ipk` onto your **77" LG B1 OLED TV**, you only need
 # Package, authenticate, install, and launch directly on your LG B1 TV
 .\deploy-lg-b1.ps1 -TvIp "192.168.1.50" -Passphrase "ABCDEF"
 ```
+

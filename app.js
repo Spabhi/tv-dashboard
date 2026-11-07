@@ -80,16 +80,21 @@
     webOS.deviceInfo(function (device) {
       var badge = document.getElementById("deviceBadge");
       var sysDetails = document.getElementById("sysDetails");
-      var mode = webOS.platform.tv ? "webOS TV Hardware" : "Browser Dev Mode";
-      var panelTag = device.oled ? "77\" 4K OLED" : (device.uhd ? "4K UHD" : "FHD");
+      var isTv = !!(webOS.platform && webOS.platform.tv);
+      var mode = isTv ? "webOS TV Hardware" : "Browser Dev Mode";
+      var model = (!isTv && device.modelName === "webOS Device") ? "LG OLED77B1 (77\" 4K OLED)" : (device.modelName || "LG OLED77B1");
+      var sdk = device.sdkVersion || "6.0";
+      var isOled = (typeof device.oled !== "undefined") ? device.oled : true;
+      var panelTag = isOled ? "77\" 4K OLED" : (device.uhd ? "4K UHD" : "FHD");
+      var appId = (webOS.fetchAppId && webOS.fetchAppId()) || "com.spabhi.tvdashboard";
       if (badge) {
-        badge.textContent = device.modelName + " · webOS " + device.sdkVersion + " (" + mode + ")";
+        badge.textContent = model + " · webOS " + sdk + " · SDK v" + (webOS.libVersion || "1.2.4") + " (" + mode + ")";
       }
       if (sysDetails) {
         sysDetails.textContent =
-          panelTag + " (" + device.screenWidth + "×" + device.screenHeight + ") · 120Hz · " + webOS.fetchAppId();
+          panelTag + " (" + device.screenWidth + "×" + device.screenHeight + ") · 120Hz · " + appId;
       }
-      logEvent("Ready on " + device.modelName + " (" + panelTag + ")");
+      logEvent("Ready on " + model + " (" + panelTag + ")");
     });
   }
 

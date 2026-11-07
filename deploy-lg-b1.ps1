@@ -51,6 +51,7 @@ $AppFiles = @(
   "styles.css",
   "app.js",
   "webOSTV.js",
+  "webOSTV-dev.js",
   "icon.png",
   "largeIcon.png"
 )
@@ -84,3 +85,4 @@ if ($TvIp -ne "") {
 } else {
   Write-Host "Tip: Run '.\deploy-lg-b1.ps1 -TvIp <TV_IP_ADDRESS> -Passphrase <6_CHAR_KEY>' to install directly onto your LG B1 OLED TV." -ForegroundColor Yellow
 }
+
