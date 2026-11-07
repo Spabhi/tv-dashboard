@@ -81,7 +81,7 @@ if ($TvIp -ne "") {
 
   Write-Host "[4/4] Installing & launching on LG B1 OLED TV..." -ForegroundColor Cyan
   ares-install --device $DeviceName $IpkFile.FullName
-  ares-launch --device $DeviceName com.spabhi.tvdashboard
+  ares-launch --device $DeviceName com.custom.dashboard
 } else {
   Write-Host "Tip: Run '.\deploy-lg-b1.ps1 -TvIp <TV_IP_ADDRESS> -Passphrase <6_CHAR_KEY>' to install directly onto your LG B1 OLED TV." -ForegroundColor Yellow
 }

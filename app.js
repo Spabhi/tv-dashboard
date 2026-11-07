@@ -86,7 +86,7 @@
       var sdk = device.sdkVersion || "6.0";
       var isOled = (typeof device.oled !== "undefined") ? device.oled : true;
       var panelTag = isOled ? "77\" 4K OLED" : (device.uhd ? "4K UHD" : "FHD");
-      var appId = (webOS.fetchAppId && webOS.fetchAppId()) || "com.spabhi.tvdashboard";
+      var appId = (webOS.fetchAppId && webOS.fetchAppId()) || "com.custom.dashboard";
       if (badge) {
         badge.textContent = model + " · webOS " + sdk + " · SDK v" + (webOS.libVersion || "1.2.4") + " (" + mode + ")";
       }
