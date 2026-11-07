@@ -9,6 +9,10 @@
   "largeIcon": "largeIcon.png",
   "resolution": "3840x2160",
   "supportMouse": true,
+  "requiredACG": [
+    "time.query",
+    "application.launcher"
+  ],
   "bgColor": "#000000",
   "iconColor": "#38bdf8",
   "disableBackHistoryAPI": true,
