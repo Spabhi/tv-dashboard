@@ -550,6 +550,19 @@ kbd.key-blue { color: #60a5fa; border-color: rgba(96, 165, 250, 0.45); }
   user-select: text;
 }
 
+.coord-input.city-input {
+  width: clamp(160px, 14vw, 240px);
+}
+
+.app-checkbox {
+  width: clamp(18px, 1.3vw, 24px);
+  height: clamp(18px, 1.3vw, 24px);
+  margin-right: 10px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  pointer-events: none;
+}
+
 .opt-btn {
   background: rgba(15, 23, 42, 0.92);
   border: 2px solid var(--border);

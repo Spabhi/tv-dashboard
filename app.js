@@ -3,7 +3,7 @@
  * Focused exclusively on:
  *   1. Local Weather Station via async fetchWeather(lat, lon) (temperature, wind speed, precipitation, conditions, 4-day forecast)
  *   2. Dynamic Grid of App & External Device Shortcuts stored in localStorage ('tv_apps')
- *   3. On-Screen Customization Modal storing active apps ('tv_apps') and city coordinates ('tv_coords') in localStorage
+ *   3. On-Screen Customization Modal Overlay (check/uncheck apps, enter new city/lat/lon via TV on-screen keyboard, persist to localStorage)
  */
 (function () {
   "use strict";
@@ -255,9 +255,7 @@
       } else {
         localStorage.setItem(COORDS_STORAGE_KEY, JSON.stringify(userCoords));
       }
-    } catch (e) {
-      // Keep default coordinates
-    }
+    } catch (e) {}
 
     // 3. Load display preferences from localStorage ('tv_prefs')
     try {
@@ -268,9 +266,7 @@
         if (typeof savedPrefs.pixelShift === "boolean") prefs.pixelShift = savedPrefs.pixelShift;
         if (typeof savedPrefs.use24h === "boolean") prefs.use24h = savedPrefs.use24h;
       }
-    } catch (e) {
-      // Keep default prefs
-    }
+    } catch (e) {}
 
     syncWeatherStateFromCoords();
   }
@@ -457,6 +453,63 @@
 
   window.fetchWeather = fetchWeather;
 
+  // Save custom city / latitude / longitude from the modal inputs (with automatic city geocoding if needed)
+  async function saveCustomLocationInputs() {
+    var cityIn = document.getElementById("customCityInput");
+    var latIn = document.getElementById("customLatInput");
+    var lonIn = document.getElementById("customLonInput");
+
+    var enteredCity = cityIn && cityIn.value ? cityIn.value.trim() : "";
+    var rawLat = latIn && latIn.value ? latIn.value.trim() : "";
+    var rawLon = lonIn && lonIn.value ? lonIn.value.trim() : "";
+    var parsedLat = parseFloat(rawLat);
+    var parsedLon = parseFloat(rawLon);
+
+    var cityChanged = enteredCity && enteredCity.toLowerCase() !== (weatherState.name || "").toLowerCase();
+    var coordsUnchanged =
+      !isNaN(parsedLat) &&
+      !isNaN(parsedLon) &&
+      Math.abs(parsedLat - Number(weatherState.lat)) < 0.0002 &&
+      Math.abs(parsedLon - Number(weatherState.lon)) < 0.0002;
+
+    // If user typed a new city name without changing the old lat/lon (or left lat/lon blank), geocode the city name
+    if (enteredCity && (isNaN(parsedLat) || isNaN(parsedLon) || (cityChanged && coordsUnchanged))) {
+      showToast("Looking up coordinates for " + enteredCity + "...");
+      try {
+        var geoUrl = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(enteredCity) + "&count=1&language=en&format=json";
+        var res = await fetch(geoUrl);
+        if (res.ok) {
+          var geoData = await res.json();
+          if (geoData && geoData.results && geoData.results.length > 0) {
+            var match = geoData.results[0];
+            parsedLat = Number(Number(match.latitude).toFixed(4));
+            parsedLon = Number(Number(match.longitude).toFixed(4));
+            enteredCity = match.name + (match.country_code ? ", " + match.country_code : "");
+          }
+        }
+      } catch (e) {
+        // Proceed with entered values if offline
+      }
+    }
+
+    if (!isNaN(parsedLat) && !isNaN(parsedLon) && parsedLat >= -90 && parsedLat <= 90 && parsedLon >= -180 && parsedLon <= 180) {
+      userCoords.useCustomCoords = true;
+      userCoords.lat = Number(parsedLat.toFixed(4));
+      userCoords.lon = Number(parsedLon.toFixed(4));
+      userCoords.name = enteredCity || ("Lat " + userCoords.lat + "°, Lon " + userCoords.lon + "°");
+      saveCoords();
+      syncWeatherStateFromCoords();
+      renderWeather();
+      renderModalState();
+      await fetchWeather(userCoords.lat, userCoords.lon, userCoords.name);
+      showToast("Saved location: " + userCoords.name + " (" + userCoords.lat + "°, " + userCoords.lon + "°)");
+      return true;
+    } else {
+      showToast("Enter a valid City Name or Latitude (-90..90) & Longitude (-180..180)");
+      return false;
+    }
+  }
+
   async function detectExactLocation() {
     showToast("Detecting exact latitude & longitude...");
 
@@ -467,6 +520,7 @@
       userCoords.name = label || ("Lat " + userCoords.lat + "°, Lon " + userCoords.lon + "°");
       saveCoords();
       syncWeatherStateFromCoords();
+      renderWeather();
       renderModalState();
       fetchWeather(userCoords.lat, userCoords.lon, userCoords.name);
       showToast("Saved coordinates to localStorage: " + userCoords.name);
@@ -492,12 +546,12 @@
           applyDetected(pos.coords.latitude, pos.coords.longitude, "GPS Coordinates");
         },
         function () {
-          showToast("Location detection unavailable – enter Lat/Lon below");
+          showToast("Location detection unavailable – enter City or Lat/Lon above");
         },
         { timeout: 5000 }
       );
     } else {
-      showToast("Enter your exact Latitude & Longitude in the fields below");
+      showToast("Enter your City or Latitude & Longitude in the fields above");
     }
   }
 
@@ -519,6 +573,7 @@
 
     visibleList.forEach(function (app) {
       var btn = document.createElement("button");
+      btn.type = "button";
       btn.className = "app-tile focusable";
       btn.setAttribute("tabindex", "0");
       btn.setAttribute("data-action", "launch-app");
@@ -547,8 +602,12 @@
       }
     });
 
+    var cityInput = document.getElementById("customCityInput");
     var latInput = document.getElementById("customLatInput");
     var lonInput = document.getElementById("customLonInput");
+    if (cityInput && document.activeElement !== cityInput) {
+      cityInput.value = weatherState.name || "";
+    }
     if (latInput && document.activeElement !== latInput) {
       latInput.value = Number(weatherState.lat).toFixed(4);
     }
@@ -599,12 +658,16 @@
         var isOn = app.active !== false;
         var iconFile = app.icon || "hdmi-icon.png";
         var btn = document.createElement("button");
+        btn.type = "button";
         btn.className = "modal-app-toggle modal-focusable" + (isOn ? " enabled" : "");
         btn.setAttribute("tabindex", "0");
+        btn.setAttribute("role", "checkbox");
+        btn.setAttribute("aria-checked", isOn ? "true" : "false");
         btn.setAttribute("data-action", "toggle-app-tile");
         btn.setAttribute("data-toggle-app-id", app.id);
         btn.innerHTML =
           '<span class="modal-app-label">' +
+          '<input type="checkbox" class="app-checkbox" tabindex="-1" ' + (isOn ? "checked" : "") + " />" +
           '<img src="' + iconFile + '" alt="" class="modal-app-icon" onerror="this.src=\'hdmi-icon.png\'" />' +
           "<span>" + app.name + "</span>" +
           "</span>" +
@@ -691,7 +754,7 @@
 
     webOS.service.request("luna://com.webos.applicationManager", {
       method: "launch",
-      parameters: { id: targetId }, // e.g. "youtube.leanback.v4", "com.disney.disneyplus-prod", "com.webos.app.hdmi1"
+      parameters: { id: targetId },
       onSuccess: function (res) {
         var sim = res && res.simulated ? " (Browser Sim)" : "";
         showToast("Launched " + label + sim);
@@ -708,7 +771,7 @@
     isModalOpen = true;
     renderModalState();
     modal.classList.remove("hidden");
-    showToast("Customization Modal Open – Saved in localStorage ('tv_apps' & 'tv_coords')");
+    showToast("Customize Overlay Open – Toggle apps or enter City / Lat / Lon");
     var firstBtn = modal.querySelector(".modal-focusable");
     if (firstBtn) firstBtn.focus();
   }
@@ -718,7 +781,12 @@
     if (!modal) return;
     isModalOpen = false;
     modal.classList.add("hidden");
-    showToast("Saved active apps & coordinates to localStorage");
+    saveApps();
+    saveCoords();
+    savePrefs();
+    renderWeather();
+    renderLaunchers();
+    showToast("Saved changes to localStorage & updated dashboard");
     var trigger = document.getElementById("openModalBtn");
     if (trigger) trigger.focus();
   }
@@ -738,7 +806,7 @@
 
   function handleAction(action, el) {
     var now = Date.now();
-    if (now - lastActionTime < 160) return;
+    if (now - lastActionTime < 120) return;
     lastActionTime = now;
 
     if (action === "launch-app") {
@@ -756,23 +824,11 @@
     } else if (action === "detect-location") {
       detectExactLocation();
     } else if (action === "apply-custom-coords") {
-      var latIn = document.getElementById("customLatInput");
-      var lonIn = document.getElementById("customLonInput");
-      var parsedLat = latIn ? parseFloat(latIn.value) : NaN;
-      var parsedLon = lonIn ? parseFloat(lonIn.value) : NaN;
-      if (!isNaN(parsedLat) && !isNaN(parsedLon) && parsedLat >= -90 && parsedLat <= 90 && parsedLon >= -180 && parsedLon <= 180) {
-        userCoords.useCustomCoords = true;
-        userCoords.lat = Number(parsedLat.toFixed(4));
-        userCoords.lon = Number(parsedLon.toFixed(4));
-        userCoords.name = "Custom (" + userCoords.lat + "°, " + userCoords.lon + "°)";
-        saveCoords();
-        syncWeatherStateFromCoords();
-        renderModalState();
-        fetchWeather(userCoords.lat, userCoords.lon, userCoords.name);
-        showToast("Saved coordinates: Lat " + userCoords.lat + "°, Lon " + userCoords.lon + "°");
-      } else {
-        showToast("Please enter valid Latitude (-90..90) & Longitude (-180..180)");
-      }
+      saveCustomLocationInputs();
+    } else if (action === "save-and-close") {
+      saveCustomLocationInputs().then(function () {
+        closeModal();
+      });
     } else if (action === "add-custom-app") {
       var nameIn = document.getElementById("newAppName");
       var idIn = document.getElementById("newAppId");
@@ -858,7 +914,7 @@
         saveApps();
         renderLaunchers();
         renderModalState();
-        showToast((targetApp.active ? "Enabled " : "Hidden ") + targetApp.name + " in tv_apps");
+        showToast((targetApp.active ? "Checked " : "Unchecked ") + targetApp.name + " (saved to tv_apps)");
       }
     } else if (action === "reset-defaults") {
       userApps = defaultApps.map(function (a) { return Object.assign({}, a); });
@@ -920,6 +976,16 @@
     var staticItems = document.querySelectorAll(".focusable, .modal-focusable");
     Array.prototype.forEach.call(staticItems, bindInteractiveElement);
 
+    // Auto-save location inputs when TV On-Screen Keyboard commits a 'change' event
+    ["customCityInput", "customLatInput", "customLonInput"].forEach(function (id) {
+      var inputEl = document.getElementById(id);
+      if (inputEl) {
+        inputEl.addEventListener("change", function () {
+          saveCustomLocationInputs();
+        });
+      }
+    });
+
     var initial = getActiveFocusables();
     if (initial.length > 0) {
       initial[0].focus();
@@ -966,11 +1032,15 @@
 
       if (e.key === "Enter" || code === 13) {
         if (isInput) {
+          // On LG webOS TV hardware, if the virtual keyboard isn't open yet, let Enter open the TV on-screen keyboard
+          if (window.webOS && webOS.platform && webOS.platform.tv && webOS.keyboard && !webOS.keyboard.isShowing()) {
+            return;
+          }
           e.preventDefault();
           if (current.id === "newAppName" || current.id === "newAppId") {
             handleAction("add-custom-app");
           } else {
-            handleAction("apply-custom-coords");
+            saveCustomLocationInputs();
           }
           return;
         }
@@ -1020,8 +1090,12 @@
         return;
       }
 
+      // Spatial 2D D-Pad Arrow navigation (allow Left/Right inside text inputs when editing)
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.key) !== -1 ||
           [37, 38, 39, 40].indexOf(code) !== -1) {
+        if (isInput && (e.key === "ArrowLeft" || e.key === "ArrowRight" || code === 37 || code === 39)) {
+          return;
+        }
         e.preventDefault();
         setRemoteBadge("🎮 D-Pad & Wheel Mode");
         if (idx === -1 && list.length > 0) {

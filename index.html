@@ -27,9 +27,9 @@
       </div>
 
       <div class="header-actions">
-        <button class="customize-btn focusable" id="openModalBtn" tabindex="0" data-action="open-modal">
+        <button type="button" class="customize-btn focusable" id="openModalBtn" tabindex="0" data-action="open-modal">
           <span class="btn-icon">⚙️</span>
-          <span>Customize UI</span>
+          <span>Customize</span>
         </button>
         <div class="header-clock">
           <div id="clockTime" class="time">12:00:00</div>
@@ -85,7 +85,7 @@
         </div>
 
         <div class="card-footer">
-          Click or press <b>Wheel (OK) / 🟡</b> to refresh &amp; cycle · <b>🟢</b> Set Exact Lat/Lon
+          Click or press <b>Wheel (OK) / 🟡</b> to cycle · <b>🟢 / ⚙️ Customize</b> to edit City &amp; Apps
         </div>
       </section>
 
@@ -94,13 +94,13 @@
         <div class="card-head">
           <div>
             <span class="card-tag">QUICK APP LAUNCHERS</span>
-            <h2 class="section-heading">Native webOS Apps &amp; Inputs</h2>
+            <h2 class="section-heading">Native webOS Apps &amp; External Inputs</h2>
           </div>
           <span class="launcher-hint">Select with Magic Pointer or D-Pad + Wheel (OK)</span>
         </div>
 
         <div class="launcher-grid" id="launcherGrid">
-          <!-- Populated dynamically by app.js based on customization preferences -->
+          <!-- Populated dynamically by app.js from localStorage 'tv_apps' -->
         </div>
       </section>
     </main>
@@ -111,7 +111,7 @@
         <span><kbd>🪄 Pointer</kbd> / <kbd>▲▼◄►</kbd> Focus</span>
         <span><kbd>◎ Wheel</kbd> Click / Cycle</span>
         <span><kbd class="key-red">●</kbd> YouTube</span>
-        <span><kbd class="key-green">●</kbd> Customize Modal</span>
+        <span><kbd class="key-green">●</kbd> Customize Overlay</span>
         <span><kbd class="key-yellow">●</kbd> Refresh Weather</span>
         <span><kbd class="key-blue">●</kbd> HDMI 1</span>
         <span><kbd>↩ Back</kbd> Close Modal / Home</span>
@@ -120,91 +120,96 @@
     </footer>
   </div>
 
-  <!-- On-Screen Customization Modal -->
+  <!-- On-Screen Customization Modal Overlay -->
   <div class="modal-backdrop hidden" id="customModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-dialog">
       <div class="modal-header">
         <div>
-          <span class="card-tag">ON-SCREEN CUSTOMIZATION</span>
-          <h2 id="modalTitle" class="modal-title">Dashboard &amp; 77" OLED Preferences</h2>
+          <span class="card-tag">ON-SCREEN CUSTOMIZATION OVERLAY</span>
+          <h2 id="modalTitle" class="modal-title">Customize Weather Location &amp; Active Apps</h2>
         </div>
-        <button class="modal-close-btn modal-focusable" tabindex="0" data-action="close-modal">
+        <button type="button" class="modal-close-btn modal-focusable" tabindex="0" data-action="close-modal">
           ✕ Close (Back)
         </button>
       </div>
 
       <div class="modal-body">
-        <!-- Weather Coordinates & Location Settings -->
+        <!-- Section 1: City / Latitude / Longitude with TV On-Screen Keyboard Support -->
         <div class="modal-section">
-          <h3 class="modal-section-title">1. Exact Latitude &amp; Longitude / Weather Location</h3>
-          <div class="modal-options-row">
-            <button class="opt-btn primary-btn modal-focusable" tabindex="0" data-action="detect-location">
-              📍 Auto-Detect My Exact Lat/Lon
-            </button>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="0">Berlin</button>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="1">Munich</button>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="2">London</button>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="3">New York</button>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="4">Tokyo</button>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="toggle-unit" id="unitToggleBtn">Unit: °C</button>
-          </div>
+          <h3 class="modal-section-title">1. Weather City, Latitude &amp; Longitude (TV On-Screen Keyboard Supported)</h3>
           <div class="coords-input-row">
             <label class="coord-field">
+              <span>City Name:</span>
+              <input type="text" id="customCityInput" class="coord-input city-input modal-focusable" tabindex="0" placeholder="e.g. Berlin, Paris, Tokyo" />
+            </label>
+            <label class="coord-field">
               <span>Latitude:</span>
-              <input type="number" step="0.0001" id="customLatInput" class="coord-input modal-focusable" tabindex="0" placeholder="52.5200" />
+              <input type="text" inputmode="decimal" id="customLatInput" class="coord-input modal-focusable" tabindex="0" placeholder="52.5200" />
             </label>
             <label class="coord-field">
               <span>Longitude:</span>
-              <input type="number" step="0.0001" id="customLonInput" class="coord-input modal-focusable" tabindex="0" placeholder="13.4050" />
+              <input type="text" inputmode="decimal" id="customLonInput" class="coord-input modal-focusable" tabindex="0" placeholder="13.4050" />
             </label>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="apply-custom-coords">
-              ✓ Fetch Exact Coordinates
+            <button type="button" class="opt-btn primary-btn modal-focusable" tabindex="0" data-action="apply-custom-coords">
+              💾 Save Location &amp; Update Weather
             </button>
           </div>
-        </div>
 
-        <!-- Theme & OLED Display Settings Row -->
-        <div class="modal-section">
-          <h3 class="modal-section-title">2. Accent Theme &amp; 77" OLED Care</h3>
           <div class="modal-options-row">
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="cyan">🔵 Cyan</button>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="emerald">🟢 Emerald</button>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="violet">🟣 Violet</button>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="amber">🟠 Amber</button>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="toggle-oled-black" id="oledBlackBtn">OLED Pure Black: OFF</button>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="toggle-pixel-shift" id="pixelShiftBtn">Pixel Shift: ON</button>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="toggle-clock-format" id="clockFmtBtn">Clock: 24h</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="detect-location">
+              📍 Auto-Detect Lat/Lon
+            </button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="0">Berlin</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="1">Munich</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="2">London</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="3">New York</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="4">Tokyo</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="toggle-unit" id="unitToggleBtn">Unit: °C</button>
           </div>
         </div>
 
-        <!-- Quick App Launcher Visibility Toggles & Custom Device Adder -->
+        <!-- Section 2: Check / Uncheck Active Quick App Launchers -->
         <div class="modal-section">
-          <h3 class="modal-section-title">3. Active App &amp; External Device Shortcuts (Stored in localStorage 'tv_apps')</h3>
+          <h3 class="modal-section-title">2. Check / Uncheck Quick App Launchers (Updates Layout Immediately)</h3>
           <div class="modal-apps-grid" id="modalAppToggles">
-            <!-- Populated dynamically by app.js from userApps -->
+            <!-- Populated dynamically with checkboxes by app.js from userApps -->
           </div>
           <div class="coords-input-row">
             <label class="coord-field">
-              <span>Name:</span>
+              <span>New Shortcut Name:</span>
               <input type="text" id="newAppName" class="coord-input modal-focusable" tabindex="0" placeholder="e.g. Plex / PS5" />
             </label>
             <label class="coord-field">
-              <span>App / Input ID:</span>
+              <span>webOS App / Input ID:</span>
               <input type="text" id="newAppId" class="coord-input modal-focusable" tabindex="0" placeholder="e.g. cdp-30 / com.webos.app.hdmi4" />
             </label>
-            <button class="opt-btn modal-focusable" tabindex="0" data-action="add-custom-app">
-              + Add Shortcut to Grid
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="add-custom-app">
+              + Add Custom Shortcut
             </button>
+          </div>
+        </div>
+
+        <!-- Section 3: Theme & 77" OLED Care -->
+        <div class="modal-section">
+          <h3 class="modal-section-title">3. Accent Theme &amp; 77" OLED Panel Care</h3>
+          <div class="modal-options-row">
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="cyan">🔵 Cyan</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="emerald">🟢 Emerald</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="violet">🟣 Violet</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="amber">🟠 Amber</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="toggle-oled-black" id="oledBlackBtn">OLED Pure Black: OFF</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="toggle-pixel-shift" id="pixelShiftBtn">Pixel Shift: ON</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="toggle-clock-format" id="clockFmtBtn">Clock: 24h</button>
           </div>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="opt-btn reset-btn modal-focusable" tabindex="0" data-action="reset-defaults">
-          ↺ Reset to Defaults
+        <button type="button" class="opt-btn reset-btn modal-focusable" tabindex="0" data-action="reset-defaults">
+          ↺ Reset Defaults
         </button>
-        <button class="opt-btn primary-btn modal-focusable" tabindex="0" data-action="close-modal">
-          ✓ Save &amp; Return to Dashboard
+        <button type="button" class="opt-btn primary-btn modal-focusable" tabindex="0" data-action="save-and-close">
+          ✓ Save &amp; Close Overlay
         </button>
       </div>
     </div>
