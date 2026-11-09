@@ -355,6 +355,27 @@ body.oled-pure-black .app-tile {
   margin-top: 6px;
 }
 
+.tile-icon {
+  width: clamp(42px, 3.4vw, 68px);
+  height: clamp(42px, 3.4vw, 68px);
+  object-fit: contain;
+  border-radius: 50%;
+  margin-bottom: 2px;
+}
+
+.modal-app-label {
+  display: flex;
+  align-items: center;
+}
+
+.modal-app-icon {
+  width: clamp(22px, 1.6vw, 32px);
+  height: clamp(22px, 1.6vw, 32px);
+  object-fit: contain;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
 .tile-emoji {
   font-size: clamp(28px, 2.7vw, 50px);
   line-height: 1.1;

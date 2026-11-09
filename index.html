@@ -177,11 +177,24 @@
           </div>
         </div>
 
-        <!-- Quick App Launcher Visibility Toggles -->
+        <!-- Quick App Launcher Visibility Toggles & Custom Device Adder -->
         <div class="modal-section">
-          <h3 class="modal-section-title">3. Visible Quick App Launchers (Click to Show / Hide)</h3>
+          <h3 class="modal-section-title">3. Active App &amp; External Device Shortcuts (Stored in localStorage 'tv_apps')</h3>
           <div class="modal-apps-grid" id="modalAppToggles">
-            <!-- Populated dynamically by app.js -->
+            <!-- Populated dynamically by app.js from userApps -->
+          </div>
+          <div class="coords-input-row">
+            <label class="coord-field">
+              <span>Name:</span>
+              <input type="text" id="newAppName" class="coord-input modal-focusable" tabindex="0" placeholder="e.g. Plex / PS5" />
+            </label>
+            <label class="coord-field">
+              <span>App / Input ID:</span>
+              <input type="text" id="newAppId" class="coord-input modal-focusable" tabindex="0" placeholder="e.g. cdp-30 / com.webos.app.hdmi4" />
+            </label>
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="add-custom-app">
+              + Add Shortcut to Grid
+            </button>
           </div>
         </div>
       </div>

@@ -2,13 +2,33 @@
  * app.js – LG B1 77" OLED Command Center
  * Focused exclusively on:
  *   1. Local Weather Station via async fetchWeather(lat, lon) (temperature, wind speed, precipitation, conditions, 4-day forecast)
- *   2. Quick App Launchers (native webOS apps & HDMI inputs via luna://com.webos.applicationManager)
- *   3. On-Screen Customization Modal (exact Lat/Lon coordinates, units, theme, OLED care, launcher toggles)
+ *   2. Dynamic Grid of App & External Device Shortcuts stored in localStorage ('tv_apps')
+ *   3. On-Screen Customization Modal storing active apps ('tv_apps') and city coordinates ('tv_coords') in localStorage
  */
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "lg_b1_dashboard_prefs_v3";
+  var APPS_STORAGE_KEY = "tv_apps";
+  var COORDS_STORAGE_KEY = "tv_coords";
+  var PREFS_STORAGE_KEY = "tv_prefs";
+
+  // Default apps & external device inputs (stored in localStorage under 'tv_apps')
+  const defaultApps = [
+    { name: "YouTube", id: "youtube.leanback.v4", icon: "youtube-icon.png", sub: "4K HDR · 🔴 Red Key", active: true },
+    { name: "Disney+", id: "com.disney.disneyplus-prod", icon: "disney-icon.png", sub: "4K UHD · Dolby Vision", active: true },
+    { name: "Prime Video", id: "amazon", icon: "prime-icon.png", sub: "UHD · HDR10+", active: true },
+    { name: "Crunchyroll", id: "crunchyroll", icon: "crunchyroll-icon.png", sub: "Anime Streaming", active: true },
+    { name: "Netflix", id: "netflix", icon: "netflix-icon.png", sub: "Dolby Vision · Atmos", active: true },
+    { name: "HDMI 1", id: "com.webos.app.hdmi1", icon: "hdmi-icon.png", sub: "Cinema / Soundbar · 🔵", active: true },
+    { name: "HDMI 2", id: "com.webos.app.hdmi2", icon: "hdmi-icon.png", sub: "External Device / Box", active: true },
+    { name: "HDMI 3 (120Hz)", id: "com.webos.app.hdmi3", icon: "hdmi-icon.png", sub: "Console 4K@120Hz eARC", active: true },
+    { name: "HDMI 4 (120Hz)", id: "com.webos.app.hdmi4", icon: "hdmi-icon.png", sub: "PC / Gaming 4K@120Hz", active: false },
+    { name: "Media / USB", id: "com.webos.app.photovideo", icon: "usb-icon.png", sub: "USB Drive & DLNA NAS", active: true },
+    { name: "Live TV", id: "com.webos.app.livetv", icon: "tv-icon.png", sub: "Antenna / Cable Tuner", active: false },
+    { name: "Web Browser", id: "com.webos.app.browser", icon: "browser-icon.png", sub: "LG webOS 6.0 Browser", active: false }
+  ];
+
+  let userApps = defaultApps.map(function (a) { return Object.assign({}, a); });
 
   var CITIES = [
     {
@@ -108,17 +128,6 @@
     }
   ];
 
-  var DEFAULT_APPS = [
-    { id: "youtube.leanback.v4", title: "YouTube", sub: "4K HDR · 🔴 Red Key", emoji: "▶️", enabled: true },
-    { id: "netflix", title: "Netflix", sub: "Dolby Vision · Atmos", emoji: "🍿", enabled: true },
-    { id: "com.disney.disneyplus-prod", title: "Disney+", sub: "4K UHD · IMAX Enhanced", emoji: "✨", enabled: true },
-    { id: "amazon", title: "Prime Video", sub: "UHD · HDR10+", emoji: "🎬", enabled: true },
-    { id: "com.webos.app.hdmi1", title: "HDMI 1", sub: "Cinema · 🔵 Blue Key", emoji: "📺", enabled: true },
-    { id: "com.webos.app.hdmi3", title: "HDMI 3 (120Hz)", sub: "HDMI 2.1 · eARC / VRR", emoji: "🎮", enabled: true },
-    { id: "com.webos.app.browser", title: "Web Browser", sub: "LG webOS 6.0 Browser", emoji: "🌐", enabled: true },
-    { id: "com.webos.app.photovideo", title: "OLED Gallery", sub: "4K Art & Media", emoji: "🖼", enabled: true }
-  ];
-
   var ACCENT_THEMES = {
     cyan: { accent: "#38bdf8", glow: "rgba(56, 189, 248, 0.48)" },
     emerald: { accent: "#4ade80", glow: "rgba(74, 222, 128, 0.48)" },
@@ -128,21 +137,23 @@
 
   var DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  var prefs = {
+  // Stored city coordinates & UI preferences
+  var userCoords = {
     cityIdx: 0,
     useCustomCoords: false,
-    customLat: 52.5200,
-    customLon: 13.4050,
-    customLabel: "Custom Location",
-    unit: "C",
+    name: CITIES[0].name,
+    lat: CITIES[0].lat,
+    lon: CITIES[0].lon,
+    unit: "C"
+  };
+
+  var prefs = {
     accent: "cyan",
     oledPureBlack: false,
     pixelShift: true,
-    use24h: true,
-    enabledApps: {}
+    use24h: true
   };
 
-  // Active weather telemetry state
   var weatherState = {
     name: CITIES[0].name,
     lat: CITIES[0].lat,
@@ -172,21 +183,16 @@
     "translate(2px, -1px)"
   ];
 
-  function initDefaultAppsMap() {
-    DEFAULT_APPS.forEach(function (app) {
-      if (typeof prefs.enabledApps[app.id] === "undefined") {
-        prefs.enabledApps[app.id] = app.enabled;
-      }
-    });
-  }
-
-  function syncWeatherStateFromPreset() {
-    if (prefs.useCustomCoords) {
-      weatherState.name = prefs.customLabel || "Exact Coordinates";
-      weatherState.lat = prefs.customLat;
-      weatherState.lon = prefs.customLon;
+  function syncWeatherStateFromCoords() {
+    if (userCoords.useCustomCoords) {
+      weatherState.name = userCoords.name || "Custom Location";
+      weatherState.lat = userCoords.lat;
+      weatherState.lon = userCoords.lon;
     } else {
-      var city = CITIES[prefs.cityIdx] || CITIES[0];
+      var city = CITIES[userCoords.cityIdx] || CITIES[0];
+      userCoords.name = city.name;
+      userCoords.lat = city.lat;
+      userCoords.lon = city.lon;
       weatherState.name = city.name;
       weatherState.lat = city.lat;
       weatherState.lon = city.lon;
@@ -202,42 +208,89 @@
     }
   }
 
-  function loadPrefs() {
-    initDefaultAppsMap();
+  function loadStorage() {
+    // 1. Load active apps from localStorage ('tv_apps')
     try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        var parsed = JSON.parse(raw);
-        if (typeof parsed.cityIdx === "number" && CITIES[parsed.cityIdx]) prefs.cityIdx = parsed.cityIdx;
-        if (typeof parsed.useCustomCoords === "boolean") prefs.useCustomCoords = parsed.useCustomCoords;
-        if (typeof parsed.customLat === "number" && !isNaN(parsed.customLat)) prefs.customLat = parsed.customLat;
-        if (typeof parsed.customLon === "number" && !isNaN(parsed.customLon)) prefs.customLon = parsed.customLon;
-        if (typeof parsed.customLabel === "string" && parsed.customLabel) prefs.customLabel = parsed.customLabel;
-        if (parsed.unit === "C" || parsed.unit === "F") prefs.unit = parsed.unit;
-        if (parsed.accent && ACCENT_THEMES[parsed.accent]) prefs.accent = parsed.accent;
-        if (typeof parsed.oledPureBlack === "boolean") prefs.oledPureBlack = parsed.oledPureBlack;
-        if (typeof parsed.pixelShift === "boolean") prefs.pixelShift = parsed.pixelShift;
-        if (typeof parsed.use24h === "boolean") prefs.use24h = parsed.use24h;
-        if (parsed.enabledApps && typeof parsed.enabledApps === "object") {
-          DEFAULT_APPS.forEach(function (app) {
-            if (typeof parsed.enabledApps[app.id] === "boolean") {
-              prefs.enabledApps[app.id] = parsed.enabledApps[app.id];
-            }
-          });
-        }
+      var savedApps = JSON.parse(localStorage.getItem(APPS_STORAGE_KEY));
+      if (Array.isArray(savedApps) && savedApps.length > 0) {
+        userApps = savedApps.map(function (item) {
+          return {
+            name: item.name || item.title || item.id,
+            id: item.id || "youtube.leanback.v4",
+            icon: item.icon || "hdmi-icon.png",
+            sub: item.sub || ("App ID: " + (item.id || "")),
+            active: typeof item.active === "boolean" ? item.active : true
+          };
+        });
+      } else {
+        userApps = defaultApps.map(function (a) { return Object.assign({}, a); });
+        localStorage.setItem(APPS_STORAGE_KEY, JSON.stringify(userApps));
       }
     } catch (e) {
-      // Fallback to defaults if localStorage is unavailable
+      userApps = defaultApps.map(function (a) { return Object.assign({}, a); });
     }
-    syncWeatherStateFromPreset();
+
+    // 2. Load city coordinates from localStorage ('tv_coords')
+    try {
+      var savedCoords = JSON.parse(localStorage.getItem(COORDS_STORAGE_KEY));
+      if (savedCoords && typeof savedCoords === "object") {
+        if (typeof savedCoords.cityIdx === "number" && CITIES[savedCoords.cityIdx]) {
+          userCoords.cityIdx = savedCoords.cityIdx;
+        }
+        if (typeof savedCoords.useCustomCoords === "boolean") {
+          userCoords.useCustomCoords = savedCoords.useCustomCoords;
+        }
+        if (typeof savedCoords.lat === "number" && !isNaN(savedCoords.lat)) {
+          userCoords.lat = savedCoords.lat;
+        }
+        if (typeof savedCoords.lon === "number" && !isNaN(savedCoords.lon)) {
+          userCoords.lon = savedCoords.lon;
+        }
+        if (typeof savedCoords.name === "string" && savedCoords.name) {
+          userCoords.name = savedCoords.name;
+        }
+        if (savedCoords.unit === "C" || savedCoords.unit === "F") {
+          userCoords.unit = savedCoords.unit;
+        }
+      } else {
+        localStorage.setItem(COORDS_STORAGE_KEY, JSON.stringify(userCoords));
+      }
+    } catch (e) {
+      // Keep default coordinates
+    }
+
+    // 3. Load display preferences from localStorage ('tv_prefs')
+    try {
+      var savedPrefs = JSON.parse(localStorage.getItem(PREFS_STORAGE_KEY));
+      if (savedPrefs && typeof savedPrefs === "object") {
+        if (savedPrefs.accent && ACCENT_THEMES[savedPrefs.accent]) prefs.accent = savedPrefs.accent;
+        if (typeof savedPrefs.oledPureBlack === "boolean") prefs.oledPureBlack = savedPrefs.oledPureBlack;
+        if (typeof savedPrefs.pixelShift === "boolean") prefs.pixelShift = savedPrefs.pixelShift;
+        if (typeof savedPrefs.use24h === "boolean") prefs.use24h = savedPrefs.use24h;
+      }
+    } catch (e) {
+      // Keep default prefs
+    }
+
+    syncWeatherStateFromCoords();
+  }
+
+  function saveApps() {
+    try {
+      localStorage.setItem(APPS_STORAGE_KEY, JSON.stringify(userApps));
+    } catch (e) {}
+  }
+
+  function saveCoords() {
+    try {
+      localStorage.setItem(COORDS_STORAGE_KEY, JSON.stringify(userCoords));
+    } catch (e) {}
   }
 
   function savePrefs() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-    } catch (e) {
-      // Ignore storage errors
-    }
+      localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(prefs));
+    } catch (e) {}
   }
 
   function showToast(msg) {
@@ -251,14 +304,14 @@
   }
 
   function formatTemp(tempC) {
-    if (prefs.unit === "F") {
+    if (userCoords.unit === "F") {
       return Math.round(tempC * 9 / 5 + 32) + "°F";
     }
     return Math.round(tempC) + "°C";
   }
 
   function formatShortTemp(tempC) {
-    if (prefs.unit === "F") {
+    if (userCoords.unit === "F") {
       return Math.round(tempC * 9 / 5 + 32) + "°";
     }
     return Math.round(tempC) + "°";
@@ -402,26 +455,23 @@
     }
   }
 
-  // Expose fetchWeather globally for direct invocation
   window.fetchWeather = fetchWeather;
 
-  // Auto-detect exact latitude and longitude via Geolocation API or IP Geolocation fallback
   async function detectExactLocation() {
     showToast("Detecting exact latitude & longitude...");
 
     var applyDetected = function (lat, lon, label) {
-      prefs.useCustomCoords = true;
-      prefs.customLat = Number(Number(lat).toFixed(4));
-      prefs.customLon = Number(Number(lon).toFixed(4));
-      prefs.customLabel = label || ("Lat " + prefs.customLat + "°, Lon " + prefs.customLon + "°");
-      savePrefs();
-      syncWeatherStateFromPreset();
+      userCoords.useCustomCoords = true;
+      userCoords.lat = Number(Number(lat).toFixed(4));
+      userCoords.lon = Number(Number(lon).toFixed(4));
+      userCoords.name = label || ("Lat " + userCoords.lat + "°, Lon " + userCoords.lon + "°");
+      saveCoords();
+      syncWeatherStateFromCoords();
       renderModalState();
-      fetchWeather(prefs.customLat, prefs.customLon, prefs.customLabel);
-      showToast("Exact coordinates locked: " + prefs.customLabel);
+      fetchWeather(userCoords.lat, userCoords.lon, userCoords.name);
+      showToast("Saved coordinates to localStorage: " + userCoords.name);
     };
 
-    // Try IP-based geolocation first (works seamlessly on webOS Smart TVs without browser permission prompts)
     try {
       const res = await fetch("https://get.geojs.io/v1/ip/geo.json");
       if (res.ok) {
@@ -434,9 +484,7 @@
           return;
         }
       }
-    } catch (e) {
-      // Fall back to navigator.geolocation if available
-    }
+    } catch (e) {}
 
     if (navigator.geolocation && navigator.geolocation.getCurrentPosition) {
       navigator.geolocation.getCurrentPosition(
@@ -453,18 +501,20 @@
     }
   }
 
+  // Build dynamic grid of shortcuts from userApps (stored in localStorage 'tv_apps')
   function renderLaunchers() {
     var grid = document.getElementById("launcherGrid");
     if (!grid) return;
     grid.innerHTML = "";
 
-    var visibleList = DEFAULT_APPS.filter(function (app) {
-      return prefs.enabledApps[app.id] !== false;
+    var visibleList = userApps.filter(function (app) {
+      return app.active !== false;
     });
 
-    if (visibleList.length === 0) {
-      prefs.enabledApps[DEFAULT_APPS[0].id] = true;
-      visibleList = [DEFAULT_APPS[0]];
+    if (visibleList.length === 0 && userApps.length > 0) {
+      userApps[0].active = true;
+      saveApps();
+      visibleList = [userApps[0]];
     }
 
     visibleList.forEach(function (app) {
@@ -473,11 +523,14 @@
       btn.setAttribute("tabindex", "0");
       btn.setAttribute("data-action", "launch-app");
       btn.setAttribute("data-app-id", app.id);
-      btn.setAttribute("data-app-title", app.title);
+      btn.setAttribute("data-app-title", app.name);
+
+      var iconFile = app.icon || "hdmi-icon.png";
+      var subText = app.sub || app.id;
       btn.innerHTML =
-        '<span class="tile-emoji">' + app.emoji + "</span>" +
-        '<span class="tile-title">' + app.title + "</span>" +
-        '<span class="tile-sub">' + app.sub + "</span>";
+        '<img src="' + iconFile + '" alt="' + app.name + '" class="tile-icon" onerror="this.src=\'hdmi-icon.png\'" />' +
+        '<span class="tile-title">' + app.name + "</span>" +
+        '<span class="tile-sub">' + subText + "</span>";
       bindInteractiveElement(btn);
       grid.appendChild(btn);
     });
@@ -487,7 +540,7 @@
     var cityBtns = document.querySelectorAll('[data-action="set-city"]');
     Array.prototype.forEach.call(cityBtns, function (btn) {
       var idx = parseInt(btn.getAttribute("data-city-idx"), 10);
-      if (!prefs.useCustomCoords && idx === prefs.cityIdx) {
+      if (!userCoords.useCustomCoords && idx === userCoords.cityIdx) {
         btn.classList.add("active-opt");
       } else {
         btn.classList.remove("active-opt");
@@ -505,7 +558,7 @@
 
     var unitBtn = document.getElementById("unitToggleBtn");
     if (unitBtn) {
-      unitBtn.textContent = "Unit: °" + prefs.unit;
+      unitBtn.textContent = "Unit: °" + userCoords.unit;
       unitBtn.classList.add("active-opt");
     }
 
@@ -542,16 +595,20 @@
         document.activeElement && document.activeElement.getAttribute("data-toggle-app-id");
       appsContainer.innerHTML = "";
 
-      DEFAULT_APPS.forEach(function (app) {
-        var isOn = prefs.enabledApps[app.id] !== false;
+      userApps.forEach(function (app) {
+        var isOn = app.active !== false;
+        var iconFile = app.icon || "hdmi-icon.png";
         var btn = document.createElement("button");
         btn.className = "modal-app-toggle modal-focusable" + (isOn ? " enabled" : "");
         btn.setAttribute("tabindex", "0");
         btn.setAttribute("data-action", "toggle-app-tile");
         btn.setAttribute("data-toggle-app-id", app.id);
         btn.innerHTML =
-          "<span>" + app.emoji + " " + app.title + "</span>" +
-          '<span class="toggle-pill ' + (isOn ? "on" : "off") + '">' + (isOn ? "SHOWN" : "HIDDEN") + "</span>";
+          '<span class="modal-app-label">' +
+          '<img src="' + iconFile + '" alt="" class="modal-app-icon" onerror="this.src=\'hdmi-icon.png\'" />' +
+          "<span>" + app.name + "</span>" +
+          "</span>" +
+          '<span class="toggle-pill ' + (isOn ? "on" : "off") + '">' + (isOn ? "ACTIVE" : "HIDDEN") + "</span>";
         bindInteractiveElement(btn);
         appsContainer.appendChild(btn);
 
@@ -626,15 +683,15 @@
     });
   }
 
-  // Launch native apps directly from your custom dashboard button
+  // Launch native apps & external HDMI/USB inputs directly from dashboard shortcut button
   function launchNativeApp(appId, appTitle) {
     var targetId = appId || "youtube.leanback.v4";
     var label = appTitle || targetId;
-    showToast("Launching " + label + "...");
+    showToast("Launching " + label + " (" + targetId + ")...");
 
     webOS.service.request("luna://com.webos.applicationManager", {
       method: "launch",
-      parameters: { id: targetId }, // e.g. "youtube.leanback.v4", "netflix", "com.webos.app.hdmi1"
+      parameters: { id: targetId }, // e.g. "youtube.leanback.v4", "com.disney.disneyplus-prod", "com.webos.app.hdmi1"
       onSuccess: function (res) {
         var sim = res && res.simulated ? " (Browser Sim)" : "";
         showToast("Launched " + label + sim);
@@ -651,7 +708,7 @@
     isModalOpen = true;
     renderModalState();
     modal.classList.remove("hidden");
-    showToast("Customization Modal Open – Use Pointer, D-Pad, or Back to close");
+    showToast("Customization Modal Open – Saved in localStorage ('tv_apps' & 'tv_coords')");
     var firstBtn = modal.querySelector(".modal-focusable");
     if (firstBtn) firstBtn.focus();
   }
@@ -661,9 +718,22 @@
     if (!modal) return;
     isModalOpen = false;
     modal.classList.add("hidden");
-    showToast("Preferences saved");
+    showToast("Saved active apps & coordinates to localStorage");
     var trigger = document.getElementById("openModalBtn");
     if (trigger) trigger.focus();
+  }
+
+  function inferIconForAppId(appId) {
+    var lower = (appId || "").toLowerCase();
+    if (lower.indexOf("youtube") !== -1) return "youtube-icon.png";
+    if (lower.indexOf("disney") !== -1) return "disney-icon.png";
+    if (lower.indexOf("amazon") !== -1 || lower.indexOf("prime") !== -1) return "prime-icon.png";
+    if (lower.indexOf("crunchyroll") !== -1) return "crunchyroll-icon.png";
+    if (lower.indexOf("netflix") !== -1) return "netflix-icon.png";
+    if (lower.indexOf("hdmi") !== -1) return "hdmi-icon.png";
+    if (lower.indexOf("usb") !== -1 || lower.indexOf("photo") !== -1) return "usb-icon.png";
+    if (lower.indexOf("browser") !== -1) return "browser-icon.png";
+    return "tv-icon.png";
   }
 
   function handleAction(action, el) {
@@ -676,10 +746,10 @@
       var appTitle = el ? el.getAttribute("data-app-title") : appId;
       launchNativeApp(appId, appTitle);
     } else if (action === "refresh-weather") {
-      prefs.useCustomCoords = false;
-      prefs.cityIdx = (prefs.cityIdx + 1) % CITIES.length;
-      savePrefs();
-      syncWeatherStateFromPreset();
+      userCoords.useCustomCoords = false;
+      userCoords.cityIdx = (userCoords.cityIdx + 1) % CITIES.length;
+      syncWeatherStateFromCoords();
+      saveCoords();
       renderWeather();
       fetchWeather(weatherState.lat, weatherState.lon, weatherState.name);
       showToast("Weather station: " + weatherState.name);
@@ -691,18 +761,46 @@
       var parsedLat = latIn ? parseFloat(latIn.value) : NaN;
       var parsedLon = lonIn ? parseFloat(lonIn.value) : NaN;
       if (!isNaN(parsedLat) && !isNaN(parsedLon) && parsedLat >= -90 && parsedLat <= 90 && parsedLon >= -180 && parsedLon <= 180) {
-        prefs.useCustomCoords = true;
-        prefs.customLat = Number(parsedLat.toFixed(4));
-        prefs.customLon = Number(parsedLon.toFixed(4));
-        prefs.customLabel = "Custom (" + prefs.customLat + "°, " + prefs.customLon + "°)";
-        savePrefs();
-        syncWeatherStateFromPreset();
+        userCoords.useCustomCoords = true;
+        userCoords.lat = Number(parsedLat.toFixed(4));
+        userCoords.lon = Number(parsedLon.toFixed(4));
+        userCoords.name = "Custom (" + userCoords.lat + "°, " + userCoords.lon + "°)";
+        saveCoords();
+        syncWeatherStateFromCoords();
         renderModalState();
-        fetchWeather(prefs.customLat, prefs.customLon, prefs.customLabel);
-        showToast("Fetched weather for Lat " + prefs.customLat + "°, Lon " + prefs.customLon + "°");
+        fetchWeather(userCoords.lat, userCoords.lon, userCoords.name);
+        showToast("Saved coordinates: Lat " + userCoords.lat + "°, Lon " + userCoords.lon + "°");
       } else {
         showToast("Please enter valid Latitude (-90..90) & Longitude (-180..180)");
       }
+    } else if (action === "add-custom-app") {
+      var nameIn = document.getElementById("newAppName");
+      var idIn = document.getElementById("newAppId");
+      var newName = nameIn && nameIn.value ? nameIn.value.trim() : "";
+      var newId = idIn && idIn.value ? idIn.value.trim() : "";
+      if (!newName || !newId) {
+        showToast("Enter both Shortcut Name and webOS App / Input ID");
+        return;
+      }
+      var existing = userApps.find(function (a) { return a.id === newId; });
+      if (existing) {
+        existing.name = newName;
+        existing.active = true;
+      } else {
+        userApps.push({
+          name: newName,
+          id: newId,
+          icon: inferIconForAppId(newId),
+          sub: "Custom · " + newId,
+          active: true
+        });
+      }
+      if (nameIn) nameIn.value = "";
+      if (idIn) idIn.value = "";
+      saveApps();
+      renderLaunchers();
+      renderModalState();
+      showToast("Added '" + newName + "' to tv_apps");
     } else if (action === "open-modal") {
       openModal();
     } else if (action === "close-modal") {
@@ -710,21 +808,21 @@
     } else if (action === "set-city") {
       var idx = parseInt(el.getAttribute("data-city-idx"), 10);
       if (!isNaN(idx) && CITIES[idx]) {
-        prefs.useCustomCoords = false;
-        prefs.cityIdx = idx;
-        savePrefs();
-        syncWeatherStateFromPreset();
+        userCoords.useCustomCoords = false;
+        userCoords.cityIdx = idx;
+        syncWeatherStateFromCoords();
+        saveCoords();
         renderWeather();
         fetchWeather(weatherState.lat, weatherState.lon, weatherState.name);
         renderModalState();
-        showToast("Weather location set to " + CITIES[idx].name);
+        showToast("Saved city coordinates: " + CITIES[idx].name);
       }
     } else if (action === "toggle-unit") {
-      prefs.unit = prefs.unit === "C" ? "F" : "C";
-      savePrefs();
+      userCoords.unit = userCoords.unit === "C" ? "F" : "C";
+      saveCoords();
       renderWeather();
       renderModalState();
-      showToast("Temperature unit set to °" + prefs.unit);
+      showToast("Temperature unit set to °" + userCoords.unit);
     } else if (action === "set-accent") {
       var accent = el.getAttribute("data-accent");
       if (accent && ACCENT_THEMES[accent]) {
@@ -754,35 +852,41 @@
       showToast("Clock format set to " + (prefs.use24h ? "24-hour" : "12-hour"));
     } else if (action === "toggle-app-tile") {
       var toggleId = el.getAttribute("data-toggle-app-id");
-      if (toggleId) {
-        prefs.enabledApps[toggleId] = prefs.enabledApps[toggleId] === false;
-        savePrefs();
+      var targetApp = userApps.find(function (a) { return a.id === toggleId; });
+      if (targetApp) {
+        targetApp.active = targetApp.active === false;
+        saveApps();
         renderLaunchers();
         renderModalState();
-        showToast("Updated Quick App Launchers");
+        showToast((targetApp.active ? "Enabled " : "Hidden ") + targetApp.name + " in tv_apps");
       }
     } else if (action === "reset-defaults") {
-      prefs.cityIdx = 0;
-      prefs.useCustomCoords = false;
-      prefs.customLat = 52.5200;
-      prefs.customLon = 13.4050;
-      prefs.customLabel = "Berlin, DE";
-      prefs.unit = "C";
-      prefs.accent = "cyan";
-      prefs.oledPureBlack = false;
-      prefs.pixelShift = true;
-      prefs.use24h = true;
-      prefs.enabledApps = {};
-      initDefaultAppsMap();
+      userApps = defaultApps.map(function (a) { return Object.assign({}, a); });
+      userCoords = {
+        cityIdx: 0,
+        useCustomCoords: false,
+        name: CITIES[0].name,
+        lat: CITIES[0].lat,
+        lon: CITIES[0].lon,
+        unit: "C"
+      };
+      prefs = {
+        accent: "cyan",
+        oledPureBlack: false,
+        pixelShift: true,
+        use24h: true
+      };
+      saveApps();
+      saveCoords();
       savePrefs();
-      syncWeatherStateFromPreset();
+      syncWeatherStateFromCoords();
       applyThemeAndOledSettings();
       updateClock();
       renderWeather();
       fetchWeather(weatherState.lat, weatherState.lon, weatherState.name);
       renderLaunchers();
       renderModalState();
-      showToast("Reset all settings to defaults");
+      showToast("Reset tv_apps & tv_coords to defaults");
     }
   }
 
@@ -860,11 +964,14 @@
       var idx = list.indexOf(current);
       var code = e.keyCode || e.which;
 
-      // Wheel Click / OK / Enter (keyCode 13)
       if (e.key === "Enter" || code === 13) {
         if (isInput) {
           e.preventDefault();
-          handleAction("apply-custom-coords");
+          if (current.id === "newAppName" || current.id === "newAppId") {
+            handleAction("add-custom-app");
+          } else {
+            handleAction("apply-custom-coords");
+          }
           return;
         }
         if (current && (current.classList.contains("focusable") || current.classList.contains("modal-focusable"))) {
@@ -874,7 +981,6 @@
         return;
       }
 
-      // webOS Back button (keyCode 461) or Escape
       if (code === 461 || e.key === "Escape" || e.key === "GoBack" || (!isInput && e.key === "Backspace")) {
         e.preventDefault();
         if (isModalOpen) {
@@ -891,7 +997,6 @@
         return;
       }
 
-      // Magic Remote Color Shortcut Keys
       if (code === 403 || e.key === "ColorF0Red") {
         e.preventDefault();
         launchNativeApp("youtube.leanback.v4", "YouTube");
@@ -915,7 +1020,6 @@
         return;
       }
 
-      // Spatial 2D D-Pad Arrow navigation
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.key) !== -1 ||
           [37, 38, 39, 40].indexOf(code) !== -1) {
         e.preventDefault();
@@ -967,14 +1071,13 @@
   }
 
   window.addEventListener("DOMContentLoaded", function () {
-    loadPrefs();
+    loadStorage();
     applyThemeAndOledSettings();
     updateClock();
     setInterval(updateClock, 1000);
     setInterval(runOledPixelShift, 60000);
     renderWeather();
     fetchWeather(weatherState.lat, weatherState.lon, weatherState.name);
-    // Refresh live weather automatically every 10 minutes
     setInterval(function () {
       fetchWeather(weatherState.lat, weatherState.lon, weatherState.name);
     }, 600000);
