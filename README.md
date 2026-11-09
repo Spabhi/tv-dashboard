@@ -1,4 +1,4 @@
-# LG B1 77" OLED Smart TV Dashboard (`com.spabhi.tvdashboard`)
+# LG B1 77" OLED Smart TV Dashboard (`com.custom.dashboard`)
 
 Custom 10-foot webOS Smart TV Command Center tailored for the **LG B1 77-inch 4K OLED TV (`OLED77B1`, webOS 6.0 / Chromium 79)** with full **LG Magic Remote (`MR21GA`)** and **Luna Service Bus native app launching** integration.
 
@@ -29,7 +29,7 @@ Custom 10-foot webOS Smart TV Command Center tailored for the **LG B1 77-inch 4K
 
 ## Required Software / Files to Download for TV Deployment
 
-All runtime code (`webOSTV.js`, `app.js`, `index.html`, `styles.css`, `appinfo.json`, `icon.png`, `largeIcon.png`) is **already self-contained in this repository**—no external CDN scripts are needed on the TV.
+All runtime code (`webOSTV.js`, `webOSTV-dev.js`, `app.js`, `index.html`, `styles.css`, `appinfo.json`, `icon.png`, `largeIcon.png`) and the pre-built package (`com.custom.dashboard_1.0.0_all.ipk`) are **already included in this repository**.
 
 To package and install the `.ipk` onto your **77" LG B1 OLED TV**, you only need:
 
@@ -45,10 +45,10 @@ To package and install the `.ipk` onto your **77" LG B1 OLED TV**, you only need
 ### Build & Deploy with One Command
 
 ```powershell
-# Package only (creates dist/com.spabhi.tvdashboard_1.1.0_all.ipk)
-.\deploy-lg-b1.ps1
+# Package directly in project folder (creates com.custom.dashboard_1.0.0_all.ipk)
+ares-package .
 
-# Package, authenticate, install, and launch directly on your LG B1 TV
+# Or use the deployment script to package, authenticate, install, and launch on your LG B1 TV
 .\deploy-lg-b1.ps1 -TvIp "192.168.1.50" -Passphrase "ABCDEF"
 ```
 

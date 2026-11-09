@@ -1,6 +1,4 @@
 node_modules/
 dist/
-*.ipk
 .DS_Store
 Thumbs.db
-
