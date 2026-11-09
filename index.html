@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>LG B1 77" OLED Smart TV Dashboard</title>
+  <title>LG OLED Command Center</title>
   <link rel="stylesheet" href="styles.css" />
   <!-- Official LG webOSTV.js & webOSTV-dev.js via CDN with local downloaded bundle for Magic Remote & Luna service calls -->
   <script src="https://cdn.jsdelivr.net/gh/webOS-TV-app-samples/LunaService@main/lib/webOSTVjs-1.2.4/webOSTV.js"></script>
@@ -16,131 +16,168 @@
     <!-- Top Header Bar -->
     <header class="tv-header">
       <div class="brand">
-        <img src="icon.png" alt="TV Dashboard Icon" class="brand-icon" />
+        <img src="icon.png" alt="Command Center Icon" class="brand-icon" />
         <div class="brand-text">
-          <h1 id="appTitle">LG OLED Command Center</h1>
+          <h1 id="appTitle">Command Center</h1>
           <div class="badge-row">
-            <span class="subtitle" id="deviceBadge">Initializing webOS 6.0...</span>
+            <span class="subtitle" id="deviceBadge">LG OLED77B1 · 4K UHD</span>
             <span class="remote-badge" id="remoteModeBadge">🪄 Magic Remote Ready</span>
           </div>
         </div>
       </div>
-      <div class="header-clock">
-        <div id="clockTime" class="time">12:00:00</div>
-        <div id="clockDate" class="date">Loading date...</div>
+
+      <div class="header-actions">
+        <button class="customize-btn focusable" id="openModalBtn" tabindex="0" data-action="open-modal">
+          <span class="btn-icon">⚙️</span>
+          <span>Customize UI</span>
+        </button>
+        <div class="header-clock">
+          <div id="clockTime" class="time">12:00:00</div>
+          <div id="clockDate" class="date">Loading date...</div>
+        </div>
       </div>
     </header>
 
-    <!-- Main Dashboard Grid -->
-    <main class="dashboard-grid">
-      <!-- Weather & Environment Card -->
-      <section class="card focusable" tabindex="0" data-action="refresh-weather">
-        <div class="card-head">
-          <span class="card-tag">ENVIRONMENT</span>
-          <span class="card-icon">🌤</span>
-        </div>
-        <div class="metric-big" id="weatherTemp">21°C · Berlin</div>
-        <div class="metric-label" id="weatherDesc">Partly Cloudy · Indoor 22.4°C · Humidity 46%</div>
-        <div class="card-footer">Click or press <b>Wheel (OK)</b> to cycle station</div>
-      </section>
+    <!-- Main Focused Workspace: Local Weather + Quick App Launchers -->
+    <main class="main-layout">
+      <!-- Left Column: Local Weather Station -->
+      <section class="card weather-panel focusable" id="weatherCard" tabindex="0" data-action="refresh-weather">
+        <div>
+          <div class="card-head">
+            <span class="card-tag">LOCAL WEATHER</span>
+            <span class="weather-live-pill" id="weatherSourcePill">LIVE STATION</span>
+          </div>
 
-      <!-- System & Luna Service Telemetry Card -->
-      <section class="card focusable" tabindex="0" data-action="ping-luna">
-        <div class="card-head">
-          <span class="card-tag">WEBOS 6.0 &amp; LUNA BUS</span>
-          <span class="card-icon">📡</span>
-        </div>
-        <div class="metric-big" id="netStatus">ONLINE</div>
-        <div class="metric-label" id="sysDetails">77" 4K OLED · 120Hz · Dolby Vision</div>
-        <div class="card-footer">Click or press <b>Wheel (OK) / 🟡</b> to ping Luna Bus</div>
-      </section>
+          <div class="weather-hero">
+            <div class="weather-icon-big" id="weatherIcon">🌤</div>
+            <div class="weather-primary">
+              <div class="weather-temp" id="weatherTemp">21°C</div>
+              <div class="weather-city" id="weatherCity">Berlin, DE</div>
+              <div class="weather-cond" id="weatherCond">Partly Cloudy</div>
+            </div>
+          </div>
 
-      <!-- OLED Care & Smart Energy Card -->
-      <section class="card focusable" tabindex="0" data-action="toggle-eco">
-        <div class="card-head">
-          <span class="card-tag">77" OLED CARE &amp; ENERGY</span>
-          <span class="card-icon">⚡</span>
-        </div>
-        <div class="metric-big" id="powerUsage">1.42 kW</div>
-        <div class="metric-label" id="ecoState">Pixel Shift: Active · Mode: Standard OLED</div>
-        <div class="card-footer">Click or press <b>Wheel (OK) / 🟢</b> for Pure Black Eco</div>
-      </section>
+          <div class="weather-metrics-grid">
+            <div class="weather-stat">
+              <span class="stat-label">HIGH / LOW</span>
+              <span class="stat-val" id="weatherHiLo">23° / 14°</span>
+            </div>
+            <div class="weather-stat">
+              <span class="stat-label">HUMIDITY</span>
+              <span class="stat-val" id="weatherHumidity">46%</span>
+            </div>
+            <div class="weather-stat">
+              <span class="stat-label">WIND</span>
+              <span class="stat-val" id="weatherWind">14 km/h</span>
+            </div>
+            <div class="weather-stat">
+              <span class="stat-label">FEELS LIKE</span>
+              <span class="stat-val" id="weatherFeels">21°C</span>
+            </div>
+          </div>
 
-      <!-- Quick Launch Native Apps & Scenes Row -->
-      <section class="card wide">
-        <div class="card-head">
-          <span class="card-tag">NATIVE WEBOS APPS &amp; HDMI INPUTS (MAGIC POINTER / D-PAD / WHEEL)</span>
-          <span class="card-icon">🎬</span>
+          <div class="forecast-strip" id="forecastStrip">
+            <!-- Populated dynamically by app.js -->
+          </div>
         </div>
-        <div class="tile-row">
-          <button class="app-tile focusable" tabindex="0" data-action="launch-app" data-app-id="youtube.leanback.v4" data-app-title="YouTube">
-            <span class="tile-emoji">▶️</span>
-            <span class="tile-title">YouTube</span>
-            <span class="tile-sub">4K HDR · 🔴 Red Key</span>
-          </button>
-          <button class="app-tile focusable" tabindex="0" data-action="launch-app" data-app-id="netflix" data-app-title="Netflix">
-            <span class="tile-emoji">🍿</span>
-            <span class="tile-title">Netflix</span>
-            <span class="tile-sub">Dolby Vision · Atmos</span>
-          </button>
-          <button class="app-tile focusable" tabindex="0" data-action="launch-app" data-app-id="com.webos.app.hdmi1" data-app-title="HDMI 1 (Cinema)">
-            <span class="tile-emoji">📺</span>
-            <span class="tile-title">HDMI 1</span>
-            <span class="tile-sub">Cinema · 🔵 Blue Key</span>
-          </button>
-          <button class="app-tile focusable" tabindex="0" data-action="launch-app" data-app-id="com.webos.app.hdmi3" data-app-title="HDMI 3 (4K 120Hz eARC)">
-            <span class="tile-emoji">🎮</span>
-            <span class="tile-title">HDMI 3 (120Hz)</span>
-            <span class="tile-sub">HDMI 2.1 · eARC / VRR</span>
-          </button>
-          <button class="app-tile focusable" tabindex="0" data-action="launch-app" data-app-id="com.webos.app.browser" data-app-title="LG Web Browser">
-            <span class="tile-emoji">🌐</span>
-            <span class="tile-title">Web Browser</span>
-            <span class="tile-sub">webOS 6.0 Browser</span>
-          </button>
-          <button class="app-tile focusable" tabindex="0" data-action="launch-app" data-app-id="com.webos.app.photovideo" data-app-title="OLED Gallery">
-            <span class="tile-emoji">🖼</span>
-            <span class="tile-title">OLED Gallery</span>
-            <span class="tile-sub">4K Art &amp; Media</span>
-          </button>
-          <button class="app-tile focusable" tabindex="0" data-action="scene-cameras">
-            <span class="tile-emoji">📹</span>
-            <span class="tile-title">Security Feeds</span>
-            <span class="tile-sub">4 Cameras Active</span>
-          </button>
-          <button class="app-tile focusable" tabindex="0" data-action="scene-music">
-            <span class="tile-emoji">🎵</span>
-            <span class="tile-title">Audio Lounge</span>
-            <span class="tile-sub">Optical / eARC Lossless</span>
-          </button>
+
+        <div class="card-footer">
+          Click or press <b>Wheel (OK) / 🟡</b> to cycle city · <b>🟢</b> Customize
         </div>
       </section>
 
-      <!-- Activity & Notification Log -->
-      <section class="card focusable" tabindex="0" data-action="clear-log">
+      <!-- Right Column: Quick App Launchers -->
+      <section class="card launchers-panel">
         <div class="card-head">
-          <span class="card-tag">LIVE EVENT LOG</span>
-          <span class="card-icon">🔔</span>
+          <div>
+            <span class="card-tag">QUICK APP LAUNCHERS</span>
+            <h2 class="section-heading">Native webOS Apps &amp; Inputs</h2>
+          </div>
+          <span class="launcher-hint">Select with Magic Pointer or D-Pad + Wheel (OK)</span>
         </div>
-        <ul id="eventLog" class="event-list"></ul>
-        <div class="card-footer">Click or press <b>Wheel (OK)</b> to clear log</div>
+
+        <div class="launcher-grid" id="launcherGrid">
+          <!-- Populated dynamically by app.js based on customization preferences -->
+        </div>
       </section>
     </main>
 
-    <!-- Bottom LG Magic Remote (MR21GA) Help Bar -->
+    <!-- Bottom LG Magic Remote Help Bar -->
     <footer class="tv-footer">
       <div class="footer-shortcuts">
-        <span><kbd>🪄 Pointer</kbd> / <kbd>▲▼◄►</kbd> Move</span>
-        <span><kbd>◎ Wheel</kbd> Click / Scroll</span>
+        <span><kbd>🪄 Pointer</kbd> / <kbd>▲▼◄►</kbd> Focus</span>
+        <span><kbd>◎ Wheel</kbd> Click / Cycle</span>
         <span><kbd class="key-red">●</kbd> YouTube</span>
-        <span><kbd class="key-green">●</kbd> OLED Eco</span>
-        <span><kbd class="key-yellow">●</kbd> Luna Bus</span>
+        <span><kbd class="key-green">●</kbd> Customize Modal</span>
+        <span><kbd class="key-yellow">●</kbd> Cycle Weather</span>
         <span><kbd class="key-blue">●</kbd> HDMI 1</span>
-        <span><kbd>↩ Back</kbd> Home / Exit</span>
+        <span><kbd>↩ Back</kbd> Close Modal / Home</span>
       </div>
       <span id="statusToast" class="toast">Ready</span>
     </footer>
   </div>
+
+  <!-- On-Screen Customization Modal -->
+  <div class="modal-backdrop hidden" id="customModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <span class="card-tag">ON-SCREEN CUSTOMIZATION</span>
+          <h2 id="modalTitle" class="modal-title">Dashboard &amp; 77" OLED Preferences</h2>
+        </div>
+        <button class="modal-close-btn modal-focusable" tabindex="0" data-action="close-modal">
+          ✕ Close (Back)
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Weather Settings Row -->
+        <div class="modal-section">
+          <h3 class="modal-section-title">1. Local Weather Location &amp; Units</h3>
+          <div class="modal-options-row">
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="0">Berlin</button>
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="1">Munich</button>
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="2">London</button>
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="3">New York</button>
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-city" data-city-idx="4">Tokyo</button>
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="toggle-unit" id="unitToggleBtn">Unit: °C</button>
+          </div>
+        </div>
+
+        <!-- Theme & OLED Display Settings Row -->
+        <div class="modal-section">
+          <h3 class="modal-section-title">2. Accent Theme &amp; 77" OLED Care</h3>
+          <div class="modal-options-row">
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="cyan">🔵 Cyan</button>
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="emerald">🟢 Emerald</button>
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="violet">🟣 Violet</button>
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="amber">🟠 Amber</button>
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="toggle-oled-black" id="oledBlackBtn">OLED Pure Black: OFF</button>
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="toggle-pixel-shift" id="pixelShiftBtn">Pixel Shift: ON</button>
+            <button class="opt-btn modal-focusable" tabindex="0" data-action="toggle-clock-format" id="clockFmtBtn">Clock: 24h</button>
+          </div>
+        </div>
+
+        <!-- Quick App Launcher Visibility Toggles -->
+        <div class="modal-section">
+          <h3 class="modal-section-title">3. Visible Quick App Launchers (Click to Show / Hide)</h3>
+          <div class="modal-apps-grid" id="modalAppToggles">
+            <!-- Populated dynamically by app.js -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="opt-btn reset-btn modal-focusable" tabindex="0" data-action="reset-defaults">
+          ↺ Reset to Defaults
+        </button>
+        <button class="opt-btn primary-btn modal-focusable" tabindex="0" data-action="close-modal">
+          ✓ Save &amp; Return to Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
