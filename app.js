@@ -149,10 +149,13 @@
 
   var prefs = {
     accent: "cyan",
-    oledPureBlack: false,
+    oledPureBlack: true,
     pixelShift: true,
     use24h: true
   };
+
+  var IDLE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+  var idleTimer = null;
 
   var weatherState = {
     name: CITIES[0].name,
@@ -975,9 +978,29 @@
     });
   }
 
+  function resetIdleTimer() {
+    if (document.body.classList.contains("idle-dimmed")) {
+      document.body.classList.remove("idle-dimmed");
+      showToast("OLED display restored to 100% brightness");
+    }
+    if (idleTimer) {
+      clearTimeout(idleTimer);
+    }
+    idleTimer = setTimeout(function () {
+      document.body.classList.add("idle-dimmed");
+      showToast("OLED Idle Care: Dimmed to 20% opacity after 10m inactivity");
+    }, IDLE_TIMEOUT_MS);
+  }
+
   function setupNavigation() {
     var staticItems = document.querySelectorAll(".focusable, .modal-focusable");
     Array.prototype.forEach.call(staticItems, bindInteractiveElement);
+
+    // 10-minute OLED idle dimmer listeners (wakes on any mouse, pointer, scroll wheel, or remote key activity)
+    ["mousemove", "mousedown", "wheel", "keydown", "click", "touchstart", "cursorStateChange"].forEach(function (evtName) {
+      window.addEventListener(evtName, resetIdleTimer, { passive: true });
+    });
+    resetIdleTimer();
 
     // Auto-save location inputs when TV On-Screen Keyboard commits a 'change' event
     ["customCityInput", "customLatInput", "customLonInput"].forEach(function (id) {
