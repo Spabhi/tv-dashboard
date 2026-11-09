@@ -170,8 +170,8 @@ body.oled-pure-black .app-tile {
 /* Focus Highlight for Magic Remote Pointer + D-Pad */
 .focusable:focus,
 .modal-focusable:focus {
-  border-color: var(--accent) !important;
-  background: var(--panel-hover) !important;
+  border-color: var(--accent);
+  background: var(--panel-hover);
   transform: scale(1.018);
   box-shadow: 0 0 0 4px var(--accent-glow), 0 14px 32px rgba(0, 0, 0, 0.65);
 }
@@ -327,20 +327,22 @@ body.oled-pure-black .app-tile {
 .launcher-grid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: 1fr;
-  grid-gap: clamp(12px, 1.3vw, 24px);
-  gap: clamp(12px, 1.3vw, 24px);
+  grid-template-columns: repeat(4, minmax(clamp(140px, 11vw, 220px), 1fr));
+  grid-auto-rows: minmax(clamp(130px, 18vh, 210px), 1fr);
+  grid-gap: clamp(14px, 1.4vw, 28px);
+  gap: clamp(14px, 1.4vw, 28px);
   margin-top: clamp(14px, 1.6vh, 24px);
   min-height: 0;
 }
 
 .app-tile {
-  background: rgba(10, 16, 30, 0.88);
-  border: 2px solid var(--border);
-  border-radius: 18px;
+  background: #141414;
+  border: 2px solid #222222;
+  border-radius: 20px;
   color: var(--text);
-  padding: clamp(12px, 1.2vw, 22px);
+  min-width: clamp(140px, 11vw, 220px);
+  min-height: clamp(130px, 18vh, 210px);
+  padding: clamp(14px, 1.3vw, 26px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -348,7 +350,23 @@ body.oled-pure-black .app-tile {
   cursor: pointer;
   outline: none;
   text-align: center;
-  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.app-tile:hover,
+.app-tile:focus {
+  transform: scale(1.05);
+  border-color: #ffffff;
+  background: #1c1c1c;
+  outline: none;
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+}
+
+@media (min-width: 2560px) {
+  .app-tile {
+    min-width: 200px;
+    min-height: 200px;
+  }
 }
 
 .app-tile > * + * {
