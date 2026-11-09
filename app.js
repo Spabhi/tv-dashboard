@@ -1,24 +1,24 @@
 /*
  * app.js – LG B1 77" OLED Command Center
  * Focused exclusively on:
- *   1. Local Weather Station (with live Open-Meteo fetch + instant offline fallback)
+ *   1. Local Weather Station via async fetchWeather(lat, lon) (temperature, wind speed, precipitation, conditions, 4-day forecast)
  *   2. Quick App Launchers (native webOS apps & HDMI inputs via luna://com.webos.applicationManager)
- *   3. On-Screen Customization Modal (persisted in localStorage, full Magic Remote & D-Pad navigation)
+ *   3. On-Screen Customization Modal (exact Lat/Lon coordinates, units, theme, OLED care, launcher toggles)
  */
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "lg_b1_dashboard_prefs_v2";
+  var STORAGE_KEY = "lg_b1_dashboard_prefs_v3";
 
   var CITIES = [
     {
       name: "Berlin, DE",
-      lat: 52.52,
-      lon: 13.405,
+      lat: 52.5200,
+      lon: 13.4050,
       tempC: 21,
       hiC: 23,
       loC: 14,
-      feelsC: 21,
+      precipMm: 0.0,
       humidity: 46,
       windKmh: 14,
       cond: "Partly Cloudy",
@@ -32,12 +32,12 @@
     },
     {
       name: "Munich, DE",
-      lat: 48.135,
-      lon: 11.582,
+      lat: 48.1351,
+      lon: 11.5820,
       tempC: 19,
       hiC: 21,
       loC: 11,
-      feelsC: 18,
+      precipMm: 0.0,
       humidity: 42,
       windKmh: 11,
       cond: "Clear Sky",
@@ -51,12 +51,12 @@
     },
     {
       name: "London, UK",
-      lat: 51.507,
-      lon: -0.127,
+      lat: 51.5074,
+      lon: -0.1278,
       tempC: 17,
       hiC: 19,
       loC: 12,
-      feelsC: 16,
+      precipMm: 0.4,
       humidity: 64,
       windKmh: 19,
       cond: "Light Breeze",
@@ -70,12 +70,12 @@
     },
     {
       name: "New York, US",
-      lat: 40.712,
-      lon: -74.006,
+      lat: 40.7128,
+      lon: -74.0060,
       tempC: 23,
       hiC: 26,
       loC: 17,
-      feelsC: 24,
+      precipMm: 0.0,
       humidity: 52,
       windKmh: 16,
       cond: "Sunny & Mild",
@@ -89,16 +89,16 @@
     },
     {
       name: "Tokyo, JP",
-      lat: 35.676,
-      lon: 139.65,
+      lat: 35.6762,
+      lon: 139.6503,
       tempC: 24,
       hiC: 26,
       loC: 18,
-      feelsC: 25,
+      precipMm: 0.0,
       humidity: 50,
       windKmh: 12,
-      cond: "Clear Evening",
-      icon: "🌙",
+      cond: "Clear Sky",
+      icon: "☀️",
       forecast: [
         { day: "Tue", icon: "☀️", hiC: 26, loC: 18 },
         { day: "Wed", icon: "🌤", hiC: 25, loC: 17 },
@@ -126,14 +126,36 @@
     amber: { accent: "#fbbf24", glow: "rgba(251, 191, 36, 0.48)" }
   };
 
+  var DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
   var prefs = {
     cityIdx: 0,
+    useCustomCoords: false,
+    customLat: 52.5200,
+    customLon: 13.4050,
+    customLabel: "Custom Location",
     unit: "C",
     accent: "cyan",
     oledPureBlack: false,
     pixelShift: true,
     use24h: true,
     enabledApps: {}
+  };
+
+  // Active weather telemetry state
+  var weatherState = {
+    name: CITIES[0].name,
+    lat: CITIES[0].lat,
+    lon: CITIES[0].lon,
+    tempC: CITIES[0].tempC,
+    hiC: CITIES[0].hiC,
+    loC: CITIES[0].loC,
+    precipMm: CITIES[0].precipMm,
+    humidity: CITIES[0].humidity,
+    windKmh: CITIES[0].windKmh,
+    cond: CITIES[0].cond,
+    icon: CITIES[0].icon,
+    forecast: CITIES[0].forecast.slice()
   };
 
   var isModalOpen = false;
@@ -158,6 +180,28 @@
     });
   }
 
+  function syncWeatherStateFromPreset() {
+    if (prefs.useCustomCoords) {
+      weatherState.name = prefs.customLabel || "Exact Coordinates";
+      weatherState.lat = prefs.customLat;
+      weatherState.lon = prefs.customLon;
+    } else {
+      var city = CITIES[prefs.cityIdx] || CITIES[0];
+      weatherState.name = city.name;
+      weatherState.lat = city.lat;
+      weatherState.lon = city.lon;
+      weatherState.tempC = city.tempC;
+      weatherState.hiC = city.hiC;
+      weatherState.loC = city.loC;
+      weatherState.precipMm = city.precipMm;
+      weatherState.humidity = city.humidity;
+      weatherState.windKmh = city.windKmh;
+      weatherState.cond = city.cond;
+      weatherState.icon = city.icon;
+      weatherState.forecast = city.forecast.slice();
+    }
+  }
+
   function loadPrefs() {
     initDefaultAppsMap();
     try {
@@ -165,6 +209,10 @@
       if (raw) {
         var parsed = JSON.parse(raw);
         if (typeof parsed.cityIdx === "number" && CITIES[parsed.cityIdx]) prefs.cityIdx = parsed.cityIdx;
+        if (typeof parsed.useCustomCoords === "boolean") prefs.useCustomCoords = parsed.useCustomCoords;
+        if (typeof parsed.customLat === "number" && !isNaN(parsed.customLat)) prefs.customLat = parsed.customLat;
+        if (typeof parsed.customLon === "number" && !isNaN(parsed.customLon)) prefs.customLon = parsed.customLon;
+        if (typeof parsed.customLabel === "string" && parsed.customLabel) prefs.customLabel = parsed.customLabel;
         if (parsed.unit === "C" || parsed.unit === "F") prefs.unit = parsed.unit;
         if (parsed.accent && ACCENT_THEMES[parsed.accent]) prefs.accent = parsed.accent;
         if (typeof parsed.oledPureBlack === "boolean") prefs.oledPureBlack = parsed.oledPureBlack;
@@ -179,8 +227,9 @@
         }
       }
     } catch (e) {
-      // Fallback to defaults if localStorage is restricted
+      // Fallback to defaults if localStorage is unavailable
     }
+    syncWeatherStateFromPreset();
   }
 
   function savePrefs() {
@@ -215,33 +264,49 @@
     return Math.round(tempC) + "°";
   }
 
-  function mapWmoCode(code) {
-    if (code === 0) return { cond: "Clear Sky", icon: "☀️" };
-    if (code === 1 || code === 2) return { cond: "Partly Cloudy", icon: "🌤" };
+  function mapWmoCode(code, isDay) {
+    var night = isDay === 0 || isDay === false;
+    if (code === 0) return { cond: night ? "Clear Night" : "Clear Sky", icon: night ? "🌙" : "☀️" };
+    if (code === 1 || code === 2) return { cond: "Partly Cloudy", icon: night ? "☁️" : "🌤" };
     if (code === 3) return { cond: "Overcast", icon: "☁️" };
     if (code >= 45 && code <= 48) return { cond: "Misty Fog", icon: "🌫" };
-    if (code >= 51 && code <= 67) return { cond: "Light Rain", icon: "🌦" };
+    if (code >= 51 && code <= 57) return { cond: "Light Drizzle", icon: "🌦" };
+    if (code >= 61 && code <= 67) return { cond: "Rainfall", icon: "🌧" };
     if (code >= 71 && code <= 77) return { cond: "Snowfall", icon: "❄️" };
     if (code >= 80 && code <= 82) return { cond: "Rain Showers", icon: "🌧" };
+    if (code >= 85 && code <= 86) return { cond: "Snow Showers", icon: "🌨" };
     if (code >= 95) return { cond: "Thunderstorm", icon: "⛈" };
     return { cond: "Partly Cloudy", icon: "🌤" };
   }
 
   function renderWeather() {
-    var city = CITIES[prefs.cityIdx] || CITIES[0];
-    document.getElementById("weatherIcon").textContent = city.icon;
-    document.getElementById("weatherTemp").textContent = formatTemp(city.tempC);
-    document.getElementById("weatherCity").textContent = city.name;
-    document.getElementById("weatherCond").textContent = city.cond;
-    document.getElementById("weatherHiLo").textContent = formatShortTemp(city.hiC) + " / " + formatShortTemp(city.loC);
-    document.getElementById("weatherHumidity").textContent = city.humidity + "%";
-    document.getElementById("weatherWind").textContent = city.windKmh + " km/h";
-    document.getElementById("weatherFeels").textContent = formatTemp(city.feelsC);
+    var tempEl = document.getElementById("weather-temp");
+    var iconEl = document.getElementById("weatherIcon");
+    var cityEl = document.getElementById("weatherCity");
+    var condEl = document.getElementById("weatherCond");
+    var coordsEl = document.getElementById("weatherCoords");
+    var windEl = document.getElementById("weatherWind");
+    var precipEl = document.getElementById("weatherPrecip");
+    var hiLoEl = document.getElementById("weatherHiLo");
+    var humEl = document.getElementById("weatherHumidity");
+
+    if (tempEl) tempEl.innerText = formatTemp(weatherState.tempC);
+    if (iconEl) iconEl.textContent = weatherState.icon;
+    if (cityEl) cityEl.textContent = weatherState.name;
+    if (condEl) condEl.textContent = weatherState.cond;
+    if (coordsEl) {
+      coordsEl.textContent =
+        "Lat " + Number(weatherState.lat).toFixed(4) + "° · Lon " + Number(weatherState.lon).toFixed(4) + "°";
+    }
+    if (windEl) windEl.textContent = Math.round(weatherState.windKmh) + " km/h";
+    if (precipEl) precipEl.textContent = Number(weatherState.precipMm).toFixed(1) + " mm";
+    if (hiLoEl) hiLoEl.textContent = formatShortTemp(weatherState.hiC) + " / " + formatShortTemp(weatherState.loC);
+    if (humEl) humEl.textContent = Math.round(weatherState.humidity) + "%";
 
     var strip = document.getElementById("forecastStrip");
     if (strip) {
       strip.innerHTML = "";
-      city.forecast.forEach(function (fc) {
+      weatherState.forecast.slice(0, 4).forEach(function (fc) {
         var card = document.createElement("div");
         card.className = "forecast-day";
         card.innerHTML =
@@ -253,45 +318,139 @@
     }
   }
 
-  function fetchLiveWeatherForCurrentCity() {
-    var city = CITIES[prefs.cityIdx] || CITIES[0];
+  // Fetch current temperature, wind speed, precipitation, and conditions using exact latitude and longitude
+  async function fetchWeather(lat, lon, customLocationLabel) {
+    var targetLat = typeof lat === "number" && !isNaN(lat) ? lat : weatherState.lat;
+    var targetLon = typeof lon === "number" && !isNaN(lon) ? lon : weatherState.lon;
+    weatherState.lat = targetLat;
+    weatherState.lon = targetLon;
+    if (customLocationLabel) {
+      weatherState.name = customLocationLabel;
+    }
+
     var pill = document.getElementById("weatherSourcePill");
-    if (typeof XMLHttpRequest === "undefined") return;
-
     var url =
-      "https://api.open-meteo.com/v1/forecast?latitude=" + city.lat +
-      "&longitude=" + city.lon +
-      "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m" +
-      "&daily=temperature_2m_max,temperature_2m_min&timezone=auto";
+      `https://api.open-meteo.com/v1/forecast?latitude=${targetLat}&longitude=${targetLon}` +
+      `&current_weather=true` +
+      `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m` +
+      `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum` +
+      `&timezone=auto`;
 
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", url, true);
-    xhr.timeout = 4500;
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState === 4 && xhr.status === 200) {
-        try {
-          var data = JSON.parse(xhr.responseText);
-          if (data && data.current) {
-            city.tempC = data.current.temperature_2m;
-            city.feelsC = data.current.apparent_temperature;
-            city.humidity = Math.round(data.current.relative_humidity_2m);
-            city.windKmh = Math.round(data.current.wind_speed_10m);
-            var mapped = mapWmoCode(data.current.weather_code);
-            city.cond = mapped.cond;
-            city.icon = mapped.icon;
-          }
-          if (data && data.daily && data.daily.temperature_2m_max && data.daily.temperature_2m_max.length > 0) {
-            city.hiC = data.daily.temperature_2m_max[0];
-            city.loC = data.daily.temperature_2m_min[0];
-          }
-          if (pill) pill.textContent = "LIVE METEO";
-          renderWeather();
-        } catch (e) {
-          // Keep cached station telemetry
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+
+      if (data.current_weather) {
+        weatherState.tempC = data.current_weather.temperature;
+        weatherState.windKmh = data.current_weather.windspeed;
+        var mapped = mapWmoCode(data.current_weather.weathercode, data.current_weather.is_day);
+        weatherState.cond = mapped.cond;
+        weatherState.icon = mapped.icon;
+
+        var tempEl = document.getElementById("weather-temp");
+        if (tempEl) {
+          tempEl.innerText = formatTemp(data.current_weather.temperature);
         }
       }
+
+      if (data.current) {
+        if (typeof data.current.precipitation === "number") {
+          weatherState.precipMm = data.current.precipitation;
+        }
+        if (typeof data.current.relative_humidity_2m === "number") {
+          weatherState.humidity = data.current.relative_humidity_2m;
+        }
+        if (typeof data.current.wind_speed_10m === "number") {
+          weatherState.windKmh = data.current.wind_speed_10m;
+        }
+      }
+
+      if (data.daily && data.daily.temperature_2m_max && data.daily.temperature_2m_max.length > 0) {
+        weatherState.hiC = data.daily.temperature_2m_max[0];
+        weatherState.loC = data.daily.temperature_2m_min[0];
+        if (typeof weatherState.precipMm !== "number" && data.daily.precipitation_sum) {
+          weatherState.precipMm = data.daily.precipitation_sum[0] || 0;
+        }
+
+        var nextForecast = [];
+        for (var i = 1; i <= 4 && i < data.daily.temperature_2m_max.length; i++) {
+          var dateStr = data.daily.time && data.daily.time[i];
+          var dObj = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
+          var dayName = DAY_NAMES[dObj.getDay()] || ("Day " + i);
+          var fcCode = data.daily.weather_code ? data.daily.weather_code[i] : 1;
+          var fcMapped = mapWmoCode(fcCode, 1);
+          nextForecast.push({
+            day: dayName,
+            icon: fcMapped.icon,
+            hiC: data.daily.temperature_2m_max[i],
+            loC: data.daily.temperature_2m_min[i]
+          });
+        }
+        if (nextForecast.length > 0) {
+          weatherState.forecast = nextForecast;
+        }
+      }
+
+      if (pill) pill.textContent = "OPEN-METEO LIVE";
+      renderWeather();
+      return data;
+    } catch (err) {
+      if (pill) pill.textContent = "CACHED STATION";
+      renderWeather();
+      return null;
+    }
+  }
+
+  // Expose fetchWeather globally for direct invocation
+  window.fetchWeather = fetchWeather;
+
+  // Auto-detect exact latitude and longitude via Geolocation API or IP Geolocation fallback
+  async function detectExactLocation() {
+    showToast("Detecting exact latitude & longitude...");
+
+    var applyDetected = function (lat, lon, label) {
+      prefs.useCustomCoords = true;
+      prefs.customLat = Number(Number(lat).toFixed(4));
+      prefs.customLon = Number(Number(lon).toFixed(4));
+      prefs.customLabel = label || ("Lat " + prefs.customLat + "°, Lon " + prefs.customLon + "°");
+      savePrefs();
+      syncWeatherStateFromPreset();
+      renderModalState();
+      fetchWeather(prefs.customLat, prefs.customLon, prefs.customLabel);
+      showToast("Exact coordinates locked: " + prefs.customLabel);
     };
-    xhr.send(null);
+
+    // Try IP-based geolocation first (works seamlessly on webOS Smart TVs without browser permission prompts)
+    try {
+      const res = await fetch("https://get.geojs.io/v1/ip/geo.json");
+      if (res.ok) {
+        const geo = await res.json();
+        if (geo && geo.latitude && geo.longitude) {
+          var cityLabel = geo.city
+            ? (geo.city + (geo.country_code ? ", " + geo.country_code : ""))
+            : "Detected Location";
+          applyDetected(parseFloat(geo.latitude), parseFloat(geo.longitude), cityLabel);
+          return;
+        }
+      }
+    } catch (e) {
+      // Fall back to navigator.geolocation if available
+    }
+
+    if (navigator.geolocation && navigator.geolocation.getCurrentPosition) {
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          applyDetected(pos.coords.latitude, pos.coords.longitude, "GPS Coordinates");
+        },
+        function () {
+          showToast("Location detection unavailable – enter Lat/Lon below");
+        },
+        { timeout: 5000 }
+      );
+    } else {
+      showToast("Enter your exact Latitude & Longitude in the fields below");
+    }
   }
 
   function renderLaunchers() {
@@ -304,7 +463,6 @@
     });
 
     if (visibleList.length === 0) {
-      // Ensure at least YouTube is shown if user unchecked all
       prefs.enabledApps[DEFAULT_APPS[0].id] = true;
       visibleList = [DEFAULT_APPS[0]];
     }
@@ -326,25 +484,31 @@
   }
 
   function renderModalState() {
-    // Highlight active city button
     var cityBtns = document.querySelectorAll('[data-action="set-city"]');
     Array.prototype.forEach.call(cityBtns, function (btn) {
       var idx = parseInt(btn.getAttribute("data-city-idx"), 10);
-      if (idx === prefs.cityIdx) {
+      if (!prefs.useCustomCoords && idx === prefs.cityIdx) {
         btn.classList.add("active-opt");
       } else {
         btn.classList.remove("active-opt");
       }
     });
 
-    // Unit button
+    var latInput = document.getElementById("customLatInput");
+    var lonInput = document.getElementById("customLonInput");
+    if (latInput && document.activeElement !== latInput) {
+      latInput.value = Number(weatherState.lat).toFixed(4);
+    }
+    if (lonInput && document.activeElement !== lonInput) {
+      lonInput.value = Number(weatherState.lon).toFixed(4);
+    }
+
     var unitBtn = document.getElementById("unitToggleBtn");
     if (unitBtn) {
       unitBtn.textContent = "Unit: °" + prefs.unit;
       unitBtn.classList.add("active-opt");
     }
 
-    // Accent buttons
     var accentBtns = document.querySelectorAll('[data-action="set-accent"]');
     Array.prototype.forEach.call(accentBtns, function (btn) {
       if (btn.getAttribute("data-accent") === prefs.accent) {
@@ -354,7 +518,6 @@
       }
     });
 
-    // OLED Pure Black, Pixel Shift, Clock Format buttons
     var oledBtn = document.getElementById("oledBlackBtn");
     if (oledBtn) {
       oledBtn.textContent = "OLED Pure Black: " + (prefs.oledPureBlack ? "ON" : "OFF");
@@ -373,7 +536,6 @@
       clockBtn.classList.add("active-opt");
     }
 
-    // App Launcher Visibility Toggles
     var appsContainer = document.getElementById("modalAppToggles");
     if (appsContainer) {
       var currentFocusAppId =
@@ -514,11 +676,33 @@
       var appTitle = el ? el.getAttribute("data-app-title") : appId;
       launchNativeApp(appId, appTitle);
     } else if (action === "refresh-weather") {
+      prefs.useCustomCoords = false;
       prefs.cityIdx = (prefs.cityIdx + 1) % CITIES.length;
       savePrefs();
+      syncWeatherStateFromPreset();
       renderWeather();
-      fetchLiveWeatherForCurrentCity();
-      showToast("Weather city: " + CITIES[prefs.cityIdx].name);
+      fetchWeather(weatherState.lat, weatherState.lon, weatherState.name);
+      showToast("Weather station: " + weatherState.name);
+    } else if (action === "detect-location") {
+      detectExactLocation();
+    } else if (action === "apply-custom-coords") {
+      var latIn = document.getElementById("customLatInput");
+      var lonIn = document.getElementById("customLonInput");
+      var parsedLat = latIn ? parseFloat(latIn.value) : NaN;
+      var parsedLon = lonIn ? parseFloat(lonIn.value) : NaN;
+      if (!isNaN(parsedLat) && !isNaN(parsedLon) && parsedLat >= -90 && parsedLat <= 90 && parsedLon >= -180 && parsedLon <= 180) {
+        prefs.useCustomCoords = true;
+        prefs.customLat = Number(parsedLat.toFixed(4));
+        prefs.customLon = Number(parsedLon.toFixed(4));
+        prefs.customLabel = "Custom (" + prefs.customLat + "°, " + prefs.customLon + "°)";
+        savePrefs();
+        syncWeatherStateFromPreset();
+        renderModalState();
+        fetchWeather(prefs.customLat, prefs.customLon, prefs.customLabel);
+        showToast("Fetched weather for Lat " + prefs.customLat + "°, Lon " + prefs.customLon + "°");
+      } else {
+        showToast("Please enter valid Latitude (-90..90) & Longitude (-180..180)");
+      }
     } else if (action === "open-modal") {
       openModal();
     } else if (action === "close-modal") {
@@ -526,12 +710,14 @@
     } else if (action === "set-city") {
       var idx = parseInt(el.getAttribute("data-city-idx"), 10);
       if (!isNaN(idx) && CITIES[idx]) {
+        prefs.useCustomCoords = false;
         prefs.cityIdx = idx;
         savePrefs();
+        syncWeatherStateFromPreset();
         renderWeather();
-        fetchLiveWeatherForCurrentCity();
+        fetchWeather(weatherState.lat, weatherState.lon, weatherState.name);
         renderModalState();
-        showToast("Default weather location set to " + CITIES[idx].name);
+        showToast("Weather location set to " + CITIES[idx].name);
       }
     } else if (action === "toggle-unit") {
       prefs.unit = prefs.unit === "C" ? "F" : "C";
@@ -577,6 +763,10 @@
       }
     } else if (action === "reset-defaults") {
       prefs.cityIdx = 0;
+      prefs.useCustomCoords = false;
+      prefs.customLat = 52.5200;
+      prefs.customLon = 13.4050;
+      prefs.customLabel = "Berlin, DE";
       prefs.unit = "C";
       prefs.accent = "cyan";
       prefs.oledPureBlack = false;
@@ -585,9 +775,11 @@
       prefs.enabledApps = {};
       initDefaultAppsMap();
       savePrefs();
+      syncWeatherStateFromPreset();
       applyThemeAndOledSettings();
       updateClock();
       renderWeather();
+      fetchWeather(weatherState.lat, weatherState.lon, weatherState.name);
       renderLaunchers();
       renderModalState();
       showToast("Reset all settings to defaults");
@@ -613,7 +805,10 @@
     el.addEventListener("click", function (e) {
       e.stopPropagation();
       el.focus();
-      handleAction(el.getAttribute("data-action"), el);
+      var action = el.getAttribute("data-action");
+      if (action) {
+        handleAction(action, el);
+      }
     });
   }
 
@@ -626,7 +821,6 @@
       initial[0].focus();
     }
 
-    // Close modal if user clicks outside modal dialog on backdrop
     var backdrop = document.getElementById("customModal");
     if (backdrop) {
       backdrop.addEventListener("click", function (e) {
@@ -636,13 +830,11 @@
       });
     }
 
-    // Native webOS Magic Remote cursor state event
     document.addEventListener("cursorStateChange", function (e) {
       var visible = e && e.detail && e.detail.visibility;
       setRemoteBadge(visible ? "🪄 Magic Pointer Active" : "🎮 D-Pad & Wheel Mode");
     });
 
-    // LG Magic Remote Scroll Wheel support
     window.addEventListener("wheel", function (e) {
       var now = Date.now();
       if (now - lastWheelTime < 130) return;
@@ -661,15 +853,20 @@
       list[nextIdx].focus();
     }, { passive: true });
 
-    // LG Magic Remote Keydown (D-Pad, Wheel OK, Back 461, Color Keys 403-406)
     document.addEventListener("keydown", function (e) {
       var list = getActiveFocusables();
       var current = document.activeElement;
+      var isInput = current && current.tagName === "INPUT";
       var idx = list.indexOf(current);
       var code = e.keyCode || e.which;
 
       // Wheel Click / OK / Enter (keyCode 13)
       if (e.key === "Enter" || code === 13) {
+        if (isInput) {
+          e.preventDefault();
+          handleAction("apply-custom-coords");
+          return;
+        }
         if (current && (current.classList.contains("focusable") || current.classList.contains("modal-focusable"))) {
           e.preventDefault();
           handleAction(current.getAttribute("data-action"), current);
@@ -677,8 +874,8 @@
         return;
       }
 
-      // webOS Back button (keyCode 461) or Escape / Backspace
-      if (code === 461 || e.key === "Escape" || e.key === "Backspace" || e.key === "GoBack") {
+      // webOS Back button (keyCode 461) or Escape
+      if (code === 461 || e.key === "Escape" || e.key === "GoBack" || (!isInput && e.key === "Backspace")) {
         e.preventDefault();
         if (isModalOpen) {
           closeModal();
@@ -708,7 +905,8 @@
       }
       if (code === 405 || e.key === "ColorF2Yellow") {
         e.preventDefault();
-        handleAction("refresh-weather");
+        fetchWeather(weatherState.lat, weatherState.lon, weatherState.name);
+        showToast("Refreshed weather for " + weatherState.name);
         return;
       }
       if (code === 406 || e.key === "ColorF3Blue") {
@@ -717,7 +915,7 @@
         return;
       }
 
-      // Spatial 2D D-Pad Arrow navigation scoped to active view (Dashboard or Modal)
+      // Spatial 2D D-Pad Arrow navigation
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.key) !== -1 ||
           [37, 38, 39, 40].indexOf(code) !== -1) {
         e.preventDefault();
@@ -775,7 +973,11 @@
     setInterval(updateClock, 1000);
     setInterval(runOledPixelShift, 60000);
     renderWeather();
-    fetchLiveWeatherForCurrentCity();
+    fetchWeather(weatherState.lat, weatherState.lon, weatherState.name);
+    // Refresh live weather automatically every 10 minutes
+    setInterval(function () {
+      fetchWeather(weatherState.lat, weatherState.lon, weatherState.name);
+    }, 600000);
     renderLaunchers();
     setupNavigation();
     initWebOS();

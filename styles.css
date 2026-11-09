@@ -190,6 +190,13 @@ body.oled-pure-black .app-tile {
   text-transform: uppercase;
 }
 
+.weather-coords {
+  font-size: clamp(11px, 0.85vw, 15px);
+  color: var(--muted);
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
 .section-heading {
   margin: 4px 0 0 0;
   font-size: clamp(18px, 1.6vw, 30px);
@@ -484,6 +491,42 @@ kbd.key-blue { color: #60a5fa; border-color: rgba(96, 165, 250, 0.45); }
 .modal-options-row > .opt-btn {
   margin-right: 12px;
   margin-bottom: 10px;
+}
+
+.coords-input-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.coord-field {
+  display: flex;
+  align-items: center;
+  margin-right: 14px;
+  margin-bottom: 8px;
+  font-size: clamp(12px, 0.95vw, 17px);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.coord-field > span {
+  margin-right: 8px;
+}
+
+.coord-input {
+  width: clamp(110px, 9vw, 170px);
+  background: rgba(9, 14, 26, 0.95);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: clamp(8px, 0.7vw, 12px) 12px;
+  font-size: clamp(13px, 1vw, 18px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .opt-btn {
