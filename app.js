@@ -357,11 +357,14 @@
       strip.innerHTML = "";
       weatherState.forecast.slice(0, 4).forEach(function (fc) {
         var card = document.createElement("div");
-        card.className = "forecast-day";
+        card.className = "forecast-day focusable";
+        card.setAttribute("tabindex", "0");
+        card.setAttribute("data-action", "refresh-weather");
         card.innerHTML =
           '<span class="fc-name">' + fc.day + "</span>" +
           '<span class="fc-icon">' + fc.icon + "</span>" +
           '<span class="fc-temp">' + formatShortTemp(fc.hiC) + " / " + formatShortTemp(fc.loC) + "</span>";
+        bindInteractiveElement(card);
         strip.appendChild(card);
       });
     }
@@ -667,7 +670,7 @@
         btn.setAttribute("data-toggle-app-id", app.id);
         btn.innerHTML =
           '<span class="modal-app-label">' +
-          '<input type="checkbox" class="app-checkbox" tabindex="-1" ' + (isOn ? "checked" : "") + " />" +
+          '<input type="checkbox" class="app-checkbox" tabindex="0" data-action="toggle-app-tile" data-toggle-app-id="' + app.id + '" ' + (isOn ? "checked" : "") + " />" +
           '<img src="' + iconFile + '" alt="" class="modal-app-icon" onerror="this.src=\'hdmi-icon.png\'" />' +
           "<span>" + app.name + "</span>" +
           "</span>" +

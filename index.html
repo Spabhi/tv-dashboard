@@ -61,19 +61,19 @@
           </div>
 
           <div class="weather-metrics-grid">
-            <div class="weather-stat">
+            <div class="weather-stat focusable" tabindex="0" data-action="refresh-weather">
               <span class="stat-label">WIND SPEED</span>
               <span class="stat-val" id="weatherWind">14 km/h</span>
             </div>
-            <div class="weather-stat">
+            <div class="weather-stat focusable" tabindex="0" data-action="refresh-weather">
               <span class="stat-label">PRECIPITATION</span>
               <span class="stat-val" id="weatherPrecip">0.0 mm</span>
             </div>
-            <div class="weather-stat">
+            <div class="weather-stat focusable" tabindex="0" data-action="toggle-unit">
               <span class="stat-label">HIGH / LOW</span>
               <span class="stat-val" id="weatherHiLo">23° / 14°</span>
             </div>
-            <div class="weather-stat">
+            <div class="weather-stat focusable" tabindex="0" data-action="refresh-weather">
               <span class="stat-label">HUMIDITY</span>
               <span class="stat-val" id="weatherHumidity">46%</span>
             </div>
@@ -110,10 +110,10 @@
       <div class="footer-shortcuts">
         <span><kbd>🪄 Pointer</kbd> / <kbd>▲▼◄►</kbd> Focus</span>
         <span><kbd>◎ Wheel</kbd> Click / Cycle</span>
-        <span><kbd class="key-red">●</kbd> YouTube</span>
-        <span><kbd class="key-green">●</kbd> Customize Overlay</span>
-        <span><kbd class="key-yellow">●</kbd> Refresh Weather</span>
-        <span><kbd class="key-blue">●</kbd> HDMI 1</span>
+        <span class="footer-chip focusable" tabindex="0" data-action="launch-app" data-app-id="youtube.leanback.v4" data-app-title="YouTube"><kbd class="key-red">●</kbd> YouTube</span>
+        <span class="footer-chip focusable" tabindex="0" data-action="open-modal"><kbd class="key-green">●</kbd> Customize Overlay</span>
+        <span class="footer-chip focusable" tabindex="0" data-action="refresh-weather"><kbd class="key-yellow">●</kbd> Refresh Weather</span>
+        <span class="footer-chip focusable" tabindex="0" data-action="launch-app" data-app-id="com.webos.app.hdmi1" data-app-title="HDMI 1"><kbd class="key-blue">●</kbd> HDMI 1</span>
         <span><kbd>↩ Back</kbd> Close Modal / Home</span>
       </div>
       <span id="statusToast" class="toast">Ready</span>

@@ -430,6 +430,15 @@ body.oled-pure-black .app-tile {
   margin-right: 18px;
 }
 
+.footer-chip {
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  outline: none;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
 kbd {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid var(--border);
