@@ -1,54 +1,52 @@
-# LG B1 77" OLED Smart TV Dashboard (`com.custom.dashboard`)
+# LG B1 77" OLED Command Center (`com.custom.dashboard`)
 
-Custom 10-foot webOS Smart TV Command Center tailored for the **LG B1 77-inch 4K OLED TV (`OLED77B1`, webOS 6.0 / Chromium 79)** with full **LG Magic Remote (`MR21GA`)** and **Luna Service Bus native app launching** integration.
+Custom 4K (`3840×2160`) 10-foot webOS Smart TV Command Center tailored for the **LG B1 77-inch 4K OLED TV (`OLED77B1`, webOS 6.0 / Chromium 79)** with full **LG Magic Remote (`MR21GA`)** and **Luna Service Bus native app launching** integration.
 
 ---
 
-## Compatibility & Optimizations for LG B1 77" OLED (webOS 6.0)
+## Core Features
 
-1. **webOS 6.0 / Chromium 79 Web Engine Compatibility**:
-   - Uses explicit margin fallbacks alongside CSS Grid `grid-gap`/`gap` so layouts render identically on webOS 6.0's Chromium 79 engine (which predates Flexbox `gap` in Chrome 84).
-   - Uses `XMLHttpRequest` (`status === 0` / `200`) in `webOSTV.js` so `appinfo.json` loads reliably from the TV's local `file://` package filesystem.
-   - Includes both `icon.png` (`80×80`) and `largeIcon.png` (`130×130`) required by the webOS 6.0 Full-Screen Home Launcher.
-2. **77" OLED Panel Care**:
-   - **Automatic Pixel Shift**: Subtly shifts the dashboard canvas by `±2px` every 60 seconds to prevent static image retention on the 77" OLED panel.
-   - **OLED Pure Black Eco Mode**: Switches the background to `#000000` (turning off unlit OLED subpixels completely) via the **OLED Care & Energy** card or the **🟢 Green Magic Remote button**.
-   - **HDMI 2.1 (4K@120Hz / eARC) Quick Input**: Dedicated tile for **HDMI 3** (the LG B1's 4K@120Hz eARC/VRR port) and **HDMI 1**.
-3. **LG Magic Remote (`MR21GA`) Full Integration**:
-   - **🪄 Air Mouse Pointer**: Hovering and clicking any card or app tile synchronizes focus automatically (`mouseenter` + `cursorStateChange`), preventing dual-highlight conflicts between pointer hover and D-Pad focus.
-   - **◎ Scroll Wheel**: Rolling the physical wheel cycles focus smoothly across dashboard cards and tiles; pressing the wheel (`keyCode 13`) activates the selection.
-   - **▲▼◄► D-Pad Spatial Navigation**: 2D bounding-box spatial navigation between cards and the 4×2 quick-launch grid.
-   - **🔴 🟢 🟡 🔵 Color Shortcut Keys**:
+1. **Local Weather Station (`async fetchWeather(lat, lon)`)**:
+   - Fetches real-time **temperature**, **wind speed**, **precipitation (`mm`)**, **humidity**, **high/low**, **sky conditions**, and a **4-day forecast** from Open-Meteo (`https://api.open-meteo.com/v1/forecast`) using exact latitude & longitude.
+   - Supports **Auto-Detecting Exact Coordinates** (IP / GPS geolocation) or typing a **City Name / Latitude / Longitude** directly via the **LG TV On-Screen Keyboard** (with automatic city geocoding).
+   - Persists city coordinates and temperature unit (`°C` / `°F`) in `localStorage` (`tv_coords`).
+
+2. **Dynamic Quick App & External Input Launchers (`tv_apps`)**:
+   - Large 4K cards (`min 200px × 200px` on a 4K canvas, `#141414` card surface with `scale(1.05)` and `#ffffff` glow on hover/focus).
+   - Launches native webOS apps and external inputs directly via `luna://com.webos.applicationManager`:
+     - **YouTube** (`youtube.leanback.v4`), **Disney+** (`com.disney.disneyplus-prod`), **Prime Video** (`amazon`), **Crunchyroll** (`crunchyroll`), **Netflix** (`netflix`)
+     - **HDMI 1** (`com.webos.app.hdmi1`), **HDMI 2** (`com.webos.app.hdmi2`), **HDMI 3 4K@120Hz eARC** (`com.webos.app.hdmi3`), **HDMI 4 120Hz** (`com.webos.app.hdmi4`)
+     - **Media / USB** (`com.webos.app.photovideo`), **Live TV** (`com.webos.app.livetv`), **Web Browser** (`com.webos.app.browser`), plus any custom shortcut added in the modal.
+   - Persists active/checked shortcuts in `localStorage` (`tv_apps`).
+
+3. **On-Screen Customization Modal Overlay**:
+   - Opens when clicking **⚙️ Customize** or pressing the **🟢 Green button (`404`)** on the Magic Remote.
+   - Check/uncheck app shortcuts (immediately updating the live layout), enter a new city or exact coordinates using the TV's on-screen keyboard, add custom app/device IDs, or switch accent themes.
+
+4. **77" LG B1 OLED Panel Protection**:
+   - **True Pitch-Black (`#000000`) Root Background**: Completely turns off unlit self-lit OLED pixels on the 77-inch B1 panel, reducing power draw and preventing burn-in.
+   - **10-Minute Idle OLED Dimmer**: Automatically dims the dashboard to **20% opacity (`opacity: 0.2`)** after 10 minutes without mouse, pointer, scroll wheel, or remote key activity, and restores 100% brightness immediately on interaction.
+   - **Automatic Pixel Shift**: Subtly shifts the canvas by `±2px` every 60 seconds.
+
+5. **Full LG Magic Remote (`MR21GA`) Integration**:
+   - Every interactive card, forecast/metric tile, footer chip, checkbox, and settings input includes `tabindex="0"` for seamless switching between **Magic Remote Air Pointer** (`supportMouse: true`, `cursorStateChange`, `mouseenter`) and the **directional Scroll Wheel / D-Pad**.
+   - **Color Shortcut Keys**:
      - 🔴 **Red (`403`)**: Launch **YouTube** (`youtube.leanback.v4`)
-     - 🟢 **Green (`404`)**: Toggle **77" OLED Pure Black Eco Mode**
-     - 🟡 **Yellow (`405`)**: Ping **Luna System Bus** (`luna://com.webos.service.systemservice/clock/getTime`)
+     - 🟢 **Green (`404`)**: Open / Close **On-Screen Customization Overlay**
+     - 🟡 **Yellow (`405`)**: Refresh Weather (`fetchWeather(lat, lon)`)
      - 🔵 **Blue (`406`)**: Switch to **HDMI 1** (`com.webos.app.hdmi1`)
-   - **↩ Back Button (`461`)**: Returns focus to the first card, or exits to the webOS Home Launcher via `webOS.platformBack()` when pressed at the root tile.
+   - **↩ Back (`461`)**: Closes the Customization Modal if open, returns focus to the Weather Card, or exits to webOS Home (`webOS.platformBack()`).
 
 ---
 
-## Required Software / Files to Download for TV Deployment
+## Packaging & Deployment to LG B1 77" OLED TV
 
-All runtime code (`webOSTV.js`, `webOSTV-dev.js`, `app.js`, `index.html`, `styles.css`, `appinfo.json`, `icon.png`, `largeIcon.png`) and the pre-built package (`com.custom.dashboard_1.0.0_all.ipk`) are **already included in this repository**.
-
-To package and install the `.ipk` onto your **77" LG B1 OLED TV**, you only need:
-
-1. **On your LG B1 OLED TV**:
-   - Open the **LG Content Store** (Apps) and download the official **Developer Mode** app.
-   - Sign in with your free LG Developer account, toggle **Dev Mode Status: ON** (the TV will reboot), and enable **Key Server**. Note the **TV IP Address** and **6-character Passphrase**.
-2. **On your PC**:
-   - **LG webOS CLI (`@webos-tools/cli`)** — automatically installed by running `.\deploy-lg-b1.ps1`, or manually via:
-     ```powershell
-     npm install -g @webos-tools/cli
-     ```
-
-### Build & Deploy with One Command
+All runtime files, icon assets, official `webOSTV.js` / `webOSTV-dev.js` (`v1.2.4`), and the pre-built package (`com.custom.dashboard_1.0.0_all.ipk`) are included in this repository.
 
 ```powershell
-# Package directly in project folder (creates com.custom.dashboard_1.0.0_all.ipk)
+# Package directly in project folder (validates against ApplicationDescription.schema)
 ares-package .
 
-# Or use the deployment script to package, authenticate, install, and launch on your LG B1 TV
+# Or package, authenticate, install, and launch on your LG B1 TV over LAN
 .\deploy-lg-b1.ps1 -TvIp "192.168.1.50" -Passphrase "ABCDEF"
 ```
-
