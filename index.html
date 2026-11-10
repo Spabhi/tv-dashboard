@@ -12,6 +12,18 @@
   <script src="webOSTV-dev.js"></script>
 </head>
 <body>
+  <!-- Dynamic Ambient Geometric & Aurora Background Layer -->
+  <div class="bg-decor" aria-hidden="true">
+    <div class="bg-grid-mesh"></div>
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+    <div class="bg-ring ring-1"></div>
+    <div class="bg-ring ring-2"></div>
+    <div class="bg-beam beam-1"></div>
+    <div class="bg-beam beam-2"></div>
+  </div>
+
   <div class="tv-canvas" id="tvCanvas">
     <!-- Top Header Bar -->
     <header class="tv-header">
@@ -94,7 +106,7 @@
         <div class="card-head">
           <div>
             <span class="card-tag">QUICK APP LAUNCHERS</span>
-            <h2 class="section-heading">Native webOS Apps &amp; External Inputs</h2>
+            <h2 class="section-heading">Native webOS Apps, HDMI 2 &amp; USB Ports</h2>
           </div>
           <span class="launcher-hint">Select with Magic Pointer or D-Pad + Wheel (OK)</span>
         </div>
@@ -113,7 +125,7 @@
         <span class="footer-chip focusable" tabindex="0" data-action="launch-app" data-app-id="youtube.leanback.v4" data-app-title="YouTube"><kbd class="key-red">●</kbd> YouTube</span>
         <span class="footer-chip focusable" tabindex="0" data-action="open-modal"><kbd class="key-green">●</kbd> Customize Overlay</span>
         <span class="footer-chip focusable" tabindex="0" data-action="refresh-weather"><kbd class="key-yellow">●</kbd> Refresh Weather</span>
-        <span class="footer-chip focusable" tabindex="0" data-action="launch-app" data-app-id="com.webos.app.hdmi1" data-app-title="HDMI 1"><kbd class="key-blue">●</kbd> HDMI 1</span>
+        <span class="footer-chip focusable" tabindex="0" data-action="launch-app" data-app-id="com.webos.app.hdmi2" data-app-title="HDMI 2"><kbd class="key-blue">●</kbd> HDMI 2</span>
         <span><kbd>↩ Back</kbd> Close Modal / Home</span>
       </div>
       <span id="statusToast" class="toast">Ready</span>
@@ -181,7 +193,7 @@
             </label>
             <label class="coord-field">
               <span>webOS App / Input ID:</span>
-              <input type="text" id="newAppId" class="coord-input modal-focusable" tabindex="0" placeholder="e.g. cdp-30 / com.webos.app.hdmi4" />
+              <input type="text" id="newAppId" class="coord-input modal-focusable" tabindex="0" placeholder="e.g. cdp-30 / com.webos.app.hdmi2" />
             </label>
             <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="add-custom-app">
               + Add Custom Shortcut
@@ -197,7 +209,7 @@
             <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="emerald">🟢 Emerald</button>
             <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="violet">🟣 Violet</button>
             <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="set-accent" data-accent="amber">🟠 Amber</button>
-            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="toggle-oled-black" id="oledBlackBtn">OLED Pure Black: OFF</button>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="toggle-oled-black" id="oledBlackBtn">Backdrop FX: ON</button>
             <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="toggle-pixel-shift" id="pixelShiftBtn">Pixel Shift: ON</button>
             <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="toggle-clock-format" id="clockFmtBtn">Clock: 24h</button>
           </div>
