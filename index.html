@@ -105,14 +105,14 @@
       <section class="card launchers-panel">
         <div class="card-head">
           <div>
-            <span class="card-tag">QUICK APP LAUNCHERS</span>
-            <h2 class="section-heading">Native webOS Apps, HDMI 2 &amp; USB Ports</h2>
+            <span class="card-tag">QUICK APP LAUNCHERS &amp; LIVE TV INPUTS</span>
+            <h2 class="section-heading">Official webOS Apps &amp; Active Input Sources</h2>
           </div>
-          <span class="launcher-hint">Select with Magic Pointer or D-Pad + Wheel (OK)</span>
+          <span class="inputs-status-pill focusable" id="activeInputsBadge" tabindex="0" data-action="scan-tv-inputs">🟢 Scanning Active TV Inputs...</span>
         </div>
 
         <div class="launcher-grid" id="launcherGrid">
-          <!-- Populated dynamically by app.js from localStorage 'tv_apps' -->
+          <!-- Populated dynamically by app.js from localStorage 'tv_apps' + live TV input status -->
         </div>
       </section>
     </main>
@@ -182,7 +182,12 @@
 
         <!-- Section 2: Check / Uncheck Active Quick App Launchers -->
         <div class="modal-section">
-          <h3 class="modal-section-title">2. Check / Uncheck Quick App Launchers (Updates Layout Immediately)</h3>
+          <div class="modal-section-head">
+            <h3 class="modal-section-title">2. Check / Uncheck Apps &amp; Detected TV Input Sources</h3>
+            <button type="button" class="opt-btn modal-focusable" tabindex="0" data-action="scan-tv-inputs">
+              🔄 Re-Scan Active TV Inputs
+            </button>
+          </div>
           <div class="modal-apps-grid" id="modalAppToggles">
             <!-- Populated dynamically with checkboxes by app.js from userApps -->
           </div>

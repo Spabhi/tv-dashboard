@@ -11,7 +11,13 @@
   "supportMouse": true,
   "requiredACG": [
     "time.query",
-    "application.launcher"
+    "application.launcher",
+    "applications",
+    "applications.launch",
+    "applications.query",
+    "devices",
+    "extinputs.service",
+    "public"
   ],
   "bgColor": "#000000",
   "iconColor": "#38bdf8",

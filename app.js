@@ -9,20 +9,23 @@
   "use strict";
 
   var APPS_STORAGE_KEY = "tv_apps";
-  var APPS_SCHEMA_KEY = "tv_apps_schema_v3";
+  var APPS_SCHEMA_KEY = "tv_apps_schema_v4";
   var COORDS_STORAGE_KEY = "tv_coords";
   var PREFS_STORAGE_KEY = "tv_prefs_v3";
 
-  // Default apps & external device inputs (HDMI 2, USB 1, USB 2 — no HDMI 1/3/4)
+  // Default apps (official icons) + TV Input Sources (dynamically synced with active HDMI & USB inputs from the TV)
   const defaultApps = [
     { key: "youtube", name: "YouTube", id: "youtube.leanback.v4", icon: "youtube-icon.png", sub: "4K HDR · 🔴 Red Key", active: true },
     { key: "disney", name: "Disney+", id: "com.disney.disneyplus-prod", icon: "disney-icon.png", sub: "4K UHD · Dolby Vision", active: true },
     { key: "prime", name: "Prime Video", id: "amazon", icon: "prime-icon.png", sub: "UHD · HDR10+", active: true },
     { key: "crunchyroll", name: "Crunchyroll", id: "crunchyroll", icon: "crunchyroll-icon.png", sub: "Anime Streaming", active: true },
     { key: "netflix", name: "Netflix", id: "netflix", icon: "netflix-icon.png", sub: "Dolby Vision · Atmos", active: true },
-    { key: "hdmi2", name: "HDMI 2", id: "com.webos.app.hdmi2", icon: "hdmi-icon.png", sub: "External Device · 🔵 Blue Key", active: true },
-    { key: "usb1", name: "USB 1", id: "com.webos.app.photovideo", params: { deviceId: "usb1", port: 1 }, icon: "usb-icon.png", sub: "USB Port 1 · Media & Files", active: true },
-    { key: "usb2", name: "USB 2", id: "com.webos.app.photovideo", params: { deviceId: "usb2", port: 2 }, icon: "usb-icon.png", sub: "USB Port 2 · External Drive", active: true },
+    { key: "hdmi2", name: "HDMI 2", id: "com.webos.app.hdmi2", icon: "hdmi-icon.png", sub: "Checking TV Input...", active: true, isInputSource: true, inputType: "hdmi", port: 2, inputId: "HDMI_2", liveSignal: true },
+    { key: "usb2", name: "USB 2", id: "com.webos.app.mediadiscovery", params: { deviceId: "usb2", port: 2 }, icon: "usb-icon.png", sub: "Checking USB Port 2...", active: true, isInputSource: true, inputType: "usb", port: 2, liveSignal: true },
+    { key: "usb1", name: "USB 1", id: "com.webos.app.mediadiscovery", params: { deviceId: "usb1", port: 1 }, icon: "usb-icon.png", sub: "USB Port 1 · Media Player", active: false, isInputSource: true, inputType: "usb", port: 1, liveSignal: false },
+    { key: "hdmi1", name: "HDMI 1", id: "com.webos.app.hdmi1", icon: "hdmi-icon.png", sub: "HDMI Port 1", active: false, isInputSource: true, inputType: "hdmi", port: 1, inputId: "HDMI_1", liveSignal: false },
+    { key: "hdmi3", name: "HDMI 3", id: "com.webos.app.hdmi3", icon: "hdmi-icon.png", sub: "HDMI Port 3", active: false, isInputSource: true, inputType: "hdmi", port: 3, inputId: "HDMI_3", liveSignal: false },
+    { key: "hdmi4", name: "HDMI 4", id: "com.webos.app.hdmi4", icon: "hdmi-icon.png", sub: "HDMI Port 4", active: false, isInputSource: true, inputType: "hdmi", port: 4, inputId: "HDMI_4", liveSignal: false },
     { key: "livetv", name: "Live TV", id: "com.webos.app.livetv", icon: "tv-icon.png", sub: "Antenna / Cable Tuner", active: false },
     { key: "browser", name: "Web Browser", id: "com.webos.app.browser", icon: "browser-icon.png", sub: "LG webOS 6.0 Browser", active: false }
   ];
@@ -220,11 +223,11 @@
   }
 
   function loadStorage() {
-    // 1. Load active apps from localStorage ('tv_apps'), migrating old HDMI 1/3/4 schema to HDMI 2 + USB 1 + USB 2
+    // 1. Load active apps from localStorage ('tv_apps'), migrating schema v4 for official icons & live TV input detection
     try {
       var schemaVer = localStorage.getItem(APPS_SCHEMA_KEY);
       var savedApps = JSON.parse(localStorage.getItem(APPS_STORAGE_KEY));
-      if (schemaVer === "3" && Array.isArray(savedApps) && savedApps.length > 0) {
+      if (schemaVer === "4" && Array.isArray(savedApps) && savedApps.length > 0) {
         userApps = savedApps.map(function (item, idx) {
           return {
             key: item.key || (item.id + "_" + idx),
@@ -233,13 +236,19 @@
             params: item.params || null,
             icon: item.icon || "hdmi-icon.png",
             sub: item.sub || ("App ID: " + (item.id || "")),
-            active: typeof item.active === "boolean" ? item.active : true
+            active: typeof item.active === "boolean" ? item.active : true,
+            isInputSource: Boolean(item.isInputSource),
+            inputType: item.inputType || null,
+            port: item.port || null,
+            inputId: item.inputId || null,
+            liveSignal: Boolean(item.liveSignal),
+            userToggled: Boolean(item.userToggled)
           };
         });
       } else {
         userApps = defaultApps.map(function (a) { return Object.assign({}, a); });
         localStorage.setItem(APPS_STORAGE_KEY, JSON.stringify(userApps));
-        localStorage.setItem(APPS_SCHEMA_KEY, "3");
+        localStorage.setItem(APPS_SCHEMA_KEY, "4");
       }
     } catch (e) {
       userApps = defaultApps.map(function (a) { return Object.assign({}, a); });
@@ -292,7 +301,7 @@
   function saveApps() {
     try {
       localStorage.setItem(APPS_STORAGE_KEY, JSON.stringify(userApps));
-      localStorage.setItem(APPS_SCHEMA_KEY, "3");
+      localStorage.setItem(APPS_SCHEMA_KEY, "4");
     } catch (e) {}
   }
 
@@ -599,7 +608,7 @@
     visibleList.forEach(function (app) {
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "app-tile focusable";
+      btn.className = "app-tile focusable" + (app.isInputSource && app.liveSignal ? " live-input-tile" : "");
       btn.setAttribute("tabindex", "0");
       btn.setAttribute("data-action", "launch-app");
       btn.setAttribute("data-app-id", app.id);
@@ -610,13 +619,32 @@
 
       var iconFile = app.icon || "hdmi-icon.png";
       var subText = app.sub || app.id;
+      var liveBadgeHtml = (app.isInputSource && app.liveSignal)
+        ? '<span class="tile-live-badge">● LIVE INPUT</span>'
+        : "";
       btn.innerHTML =
+        liveBadgeHtml +
         '<img src="' + iconFile + '" alt="' + app.name + '" class="tile-icon" onerror="this.src=\'hdmi-icon.png\'" />' +
         '<span class="tile-title">' + app.name + "</span>" +
         '<span class="tile-sub">' + subText + "</span>";
       bindInteractiveElement(btn);
       grid.appendChild(btn);
     });
+    updateActiveInputsBadge();
+  }
+
+  function updateActiveInputsBadge() {
+    var badgeEl = document.getElementById("activeInputsBadge");
+    if (!badgeEl) return;
+    var activeInputs = userApps.filter(function (a) {
+      return a.isInputSource && a.liveSignal;
+    });
+    if (activeInputs.length > 0) {
+      var names = activeInputs.map(function (a) { return a.name; }).join(" · ");
+      badgeEl.textContent = "🟢 Active TV Inputs (" + activeInputs.length + "): " + names;
+    } else {
+      badgeEl.textContent = "⚪ TV Inputs: Click to Scan";
+    }
   }
 
   function renderModalState() {
@@ -772,6 +800,144 @@
     canvas.style.transform = pixelShiftOffsets[pixelShiftStep];
   }
 
+  // Query active HDMI & USB input sources directly from the LG webOS TV and display active inputs on the dashboard
+  function syncActiveTvInputSources(showFeedback) {
+    if (!window.webOS || !webOS.service) return;
+
+    if (showFeedback) {
+      showToast("Scanning LG TV for active HDMI & USB input sources...");
+    }
+
+    // 1. Check active HDMI external inputs via luna://com.webos.service.eim/getAllInputStatus
+    webOS.service.request("luna://com.webos.service.eim", {
+      method: "getAllInputStatus",
+      parameters: { subscribe: true },
+      onSuccess: function (res) {
+        if (!res || !Array.isArray(res.devices)) return;
+
+        var anySignal = res.devices.some(function (d) {
+          return Boolean(d && (d.activate || d.hdmiPlugIn));
+        });
+
+        res.devices.forEach(function (dev) {
+          if (!dev) return;
+          var portNum = dev.port || parseInt(String(dev.id || "").replace(/\D+/g, ""), 10) || 1;
+          var appId = dev.appId || ("com.webos.app.hdmi" + portNum);
+          var isLive = anySignal ? Boolean(dev.activate || dev.hdmiPlugIn) : Boolean(dev.connected);
+
+          var customLabel = (dev.label && dev.label !== dev.id && dev.label !== ("HDMI " + portNum) && dev.label !== ("HDMI_" + portNum))
+            ? dev.label
+            : "";
+          var displayTitle = customLabel ? ("HDMI " + portNum + " · " + customLabel) : ("HDMI " + portNum);
+          var prodDesc = dev.spdProductDescription || dev.spdVendorName || (customLabel ? "Connected Device" : "External Input");
+          var subText = isLive
+            ? ("🟢 Active · " + prodDesc + (portNum === 2 ? " · 🔵 Blue Key" : ""))
+            : ("⚪ No Signal · HDMI Port " + portNum);
+
+          var existing = userApps.find(function (a) {
+            return a.id === appId || a.inputId === dev.id || a.key === ("hdmi" + portNum);
+          });
+          if (existing) {
+            existing.name = displayTitle;
+            existing.sub = subText;
+            existing.isInputSource = true;
+            existing.inputType = "hdmi";
+            existing.port = portNum;
+            existing.inputId = dev.id;
+            existing.liveSignal = isLive;
+            if (!existing.userToggled) {
+              existing.active = isLive;
+            }
+          }
+
+          var defMatch = defaultApps.find(function (a) {
+            return a.id === appId || a.inputId === dev.id || a.key === ("hdmi" + portNum);
+          });
+          if (defMatch) {
+            defMatch.name = displayTitle;
+            defMatch.sub = subText;
+            defMatch.liveSignal = isLive;
+            defMatch.active = isLive;
+          }
+        });
+
+        saveApps();
+        renderLaunchers();
+        if (isModalOpen) renderModalState();
+      }
+    });
+
+    // 2. Check attached USB storage devices via luna://com.webos.service.attachedstoragemanager/listDevices
+    webOS.service.request("luna://com.webos.service.attachedstoragemanager", {
+      method: "listDevices",
+      parameters: { subscribe: true },
+      onSuccess: function (res) {
+        if (!res || !Array.isArray(res.devices)) return;
+
+        var usbList = res.devices.filter(function (d) {
+          return d && d.deviceType === "usb";
+        });
+
+        var usbByPort = {};
+        usbList.forEach(function (u, idx) {
+          var p = u.portNum || u.deviceNum || (idx + 1);
+          usbByPort[p] = u;
+        });
+
+        [1, 2].forEach(function (portNum) {
+          var key = "usb" + portNum;
+          var uDev = usbByPort[portNum];
+          var isLive = Boolean(uDev);
+          var devLabel = uDev ? (uDev.deviceName || uDev.productName || "") : "";
+          var displayTitle = devLabel ? ("USB " + portNum + " · " + devLabel) : ("USB " + portNum);
+          var detail = uDev
+            ? [uDev.vendorName, uDev.physicalType || "Drive"].filter(Boolean).join(" ")
+            : "";
+          var subText = isLive
+            ? ("🟢 Active · " + (detail || ("USB Port " + portNum)))
+            : ("⚪ No Drive · USB Port " + portNum);
+
+          var existing = userApps.find(function (a) {
+            return a.key === key || (a.inputType === "usb" && a.port === portNum);
+          });
+          if (existing) {
+            existing.name = displayTitle;
+            existing.id = "com.webos.app.mediadiscovery";
+            existing.sub = subText;
+            existing.isInputSource = true;
+            existing.inputType = "usb";
+            existing.port = portNum;
+            existing.liveSignal = isLive;
+            if (uDev && uDev.deviceId) {
+              existing.params = { deviceId: uDev.deviceId, port: portNum };
+            }
+            if (!existing.userToggled) {
+              existing.active = isLive;
+            }
+          }
+
+          var defMatch = defaultApps.find(function (a) {
+            return a.key === key || (a.inputType === "usb" && a.port === portNum);
+          });
+          if (defMatch) {
+            defMatch.name = displayTitle;
+            defMatch.sub = subText;
+            defMatch.liveSignal = isLive;
+            defMatch.active = isLive;
+          }
+        });
+
+        saveApps();
+        renderLaunchers();
+        if (isModalOpen) renderModalState();
+        if (showFeedback) {
+          var liveCount = userApps.filter(function (a) { return a.isInputSource && a.liveSignal; }).length;
+          showToast("Synced " + liveCount + " active TV input source(s) to dashboard");
+        }
+      }
+    });
+  }
+
   function initWebOS() {
     if (!window.webOS) return;
 
@@ -792,9 +958,11 @@
       }
       showToast("Ready on " + model);
     });
+
+    syncActiveTvInputSources(false);
   }
 
-  // Launch native apps & external HDMI 2 / USB 1 / USB 2 inputs directly from dashboard shortcut button
+  // Launch native apps & external HDMI / USB inputs directly from dashboard shortcut button
   function launchNativeApp(appId, appTitle, launchParams) {
     var targetId = appId || "youtube.leanback.v4";
     var label = appTitle || targetId;
@@ -813,6 +981,10 @@
         showToast("Launched " + label + sim);
       },
       onFailure: function (err) {
+        if (targetId === "com.webos.app.mediadiscovery") {
+          launchNativeApp("com.webos.app.photovideo", label, launchParams);
+          return;
+        }
         showToast("Launch failed: " + (err && err.errorText ? err.errorText : label));
       }
     });
@@ -962,11 +1134,17 @@
       updateClock();
       renderModalState();
       showToast("Clock format set to " + (prefs.use24h ? "24-hour" : "12-hour"));
+    } else if (action === "scan-tv-inputs") {
+      userApps.forEach(function (a) {
+        if (a.isInputSource) a.userToggled = false;
+      });
+      syncActiveTvInputSources(true);
     } else if (action === "toggle-app-tile") {
       var toggleKey = el.getAttribute("data-toggle-app-key");
       var targetApp = userApps.find(function (a) { return a.key === toggleKey; });
       if (targetApp) {
         targetApp.active = targetApp.active === false;
+        targetApp.userToggled = true;
         saveApps();
         renderLaunchers();
         renderModalState();
@@ -997,9 +1175,10 @@
       updateClock();
       renderWeather();
       fetchWeather(weatherState.lat, weatherState.lon, weatherState.name);
+      syncActiveTvInputSources(false);
       renderLaunchers();
       renderModalState();
-      showToast("Reset tv_apps & tv_coords to defaults");
+      showToast("Reset tv_apps & synced active TV inputs");
     }
   }
 

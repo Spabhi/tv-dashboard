@@ -30,6 +30,29 @@ window.webOS=function(e){var n={};function r(t){if(n[t])return n[t].exports;var 
           UHD: "true",
           OLED: "true"
         };
+        if (uri.indexOf("com.webos.service.eim/getAllInputStatus") !== -1) {
+          resp.devices = [
+            { id: "HDMI_1", label: "HDMI 1", port: 1, activate: false, connected: true, hdmiPlugIn: false, appId: "com.webos.app.hdmi1" },
+            { id: "HDMI_2", label: "Google OTT", port: 2, activate: true, connected: true, hdmiPlugIn: true, appId: "com.webos.app.hdmi2", spdProductDescription: "Chromecast HD", spdVendorName: "Google" },
+            { id: "HDMI_3", label: "HDMI 3", port: 3, activate: false, connected: false, hdmiPlugIn: false, appId: "com.webos.app.hdmi3" },
+            { id: "HDMI_4", label: "HDMI 4", port: 4, activate: false, connected: false, hdmiPlugIn: false, appId: "com.webos.app.hdmi4" }
+          ];
+        } else if (uri.indexOf("com.webos.service.eim/getCurrentInput") !== -1) {
+          resp.mainInputSourceId = "HDMI_2";
+        } else if (uri.indexOf("com.webos.service.attachedstoragemanager/listDevices") !== -1) {
+          resp.devices = [
+            {
+              deviceId: "USB_4E413434504E4543",
+              deviceName: "Expansion",
+              productName: "Expansion",
+              vendorName: "Seagate RSS LLC",
+              physicalType: "HDD",
+              deviceType: "usb",
+              deviceStatus: "NORMAL",
+              portNum: 2
+            }
+          ];
+        }
         self.onservicecallback(JSON.stringify(resp));
       }, 30);
     };
