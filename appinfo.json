@@ -7,7 +7,7 @@
   "title": "Command Center",
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
-  "resolution": "3840x2160",
+  "resolution": "1920x1080",
   "supportMouse": true,
   "requiredACG": [
     "time.query",
